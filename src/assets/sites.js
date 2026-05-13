@@ -1,0 +1,100 @@
+export const SITES = [
+  {
+    id: 1,
+    title: 'FarmFlow Dashboard',
+    desc: 'Agricultural management SaaS with real-time crop analytics and weather integration.',
+    author: 'Adewale Okon',
+    tags: ['agriculture', 'saas', 'green'],
+    tool: 'cursor',
+    prompt: 'Build a full agricultural SaaS dashboard with sidebar navigation, crop health cards, weather widget, revenue charts using Chart.js, and a dark green color scheme. Use React and Tailwind. Include a mobile-responsive layout.',
+  },
+  {
+    id: 2,
+    title: 'SpeedTrack Racing',
+    desc: 'Racing analytics platform built entirely with prompts in under 2 hours.',
+    author: 'Chidi Nwosu',
+    tags: ['racing', 'sports', 'dark'],
+    tool: 'bolt',
+    prompt: 'Create a racing analytics website with a dark theme. Include a hero section with animated speed counter, driver standings table, lap time charts, and a race calendar. Bold typography, red accents.',
+  },
+  {
+    id: 3,
+    title: 'AquaPure Landing',
+    desc: 'Clean water startup landing page with animated water flow effects.',
+    author: 'Fatima Bello',
+    tags: ['water', 'startup', 'blue'],
+    tool: 'v0',
+    prompt: 'Design a landing page for a clean water startup. Blue and white color palette, animated SVG water wave at hero, impact stats section, testimonials, and a donation CTA. Minimalist and trustworthy.',
+  },
+  {
+    id: 4,
+    title: 'Crumble Bakery',
+    desc: 'Artisan cake shop with online ordering — built in 45 minutes flat.',
+    author: 'Ngozi Eze',
+    tags: ['food', 'cake', 'warm'],
+    tool: 'lovable',
+    prompt: 'Build a bakery website for an artisan cake shop. Warm beige and brown palette, hero with full-bleed cake photo, menu grid with hover cards, order form, and Instagram feed embed. Elegant serif typography.',
+  },
+  {
+    id: 5,
+    title: 'AuthorSpace Pro',
+    desc: 'Personal portfolio for fiction authors with book showcase and blog.',
+    author: 'Emeka Obi',
+    tags: ['authors', 'portfolio', 'minimal'],
+    tool: 'cursor',
+    prompt: 'Create a personal portfolio site for a fiction author. Clean white background, book cover grid, biography section, newsletter signup, and a blog feed. Use Playfair Display for headings. Very elegant.',
+  },
+  {
+    id: 6,
+    title: 'SportsEdge Analytics',
+    desc: 'Live sports stats platform with real-time score widgets.',
+    author: 'Tunde Adesanya',
+    tags: ['sports', 'dark', 'saas'],
+    tool: 'replit',
+    prompt: 'Build a sports analytics dashboard. Dark navy background, live score cards with pulsing indicator, player stats table, match timeline, and performance charts. Include a sidebar with league navigation.',
+  },
+  {
+    id: 7,
+    title: 'GreenHarvest Co.',
+    desc: 'Organic produce marketplace connecting farmers to consumers directly.',
+    author: 'Aisha Musa',
+    tags: ['agriculture', 'business', 'green'],
+    tool: 'bolt',
+    prompt: 'Build an organic produce marketplace. Green and cream palette, product listing grid with filters, farmer profile cards, cart functionality, and a hero with hand-drawn illustration style accents.',
+  },
+  {
+    id: 8,
+    title: 'BlueSky SaaS',
+    desc: 'Minimal B2B SaaS landing page — the prompt chain is a masterclass.',
+    author: 'Kola Ogundimu',
+    tags: ['saas', 'blue', 'minimal'],
+    tool: 'v0',
+    prompt: 'Create a B2B SaaS landing page. Light blue and white, hero with product screenshot mockup, feature grid with icons, pricing table with toggle, customer logos strip, and footer. Clean and professional.',
+  },
+  {
+    id: 9,
+    title: 'Hustle Business Hub',
+    desc: 'All-in-one business management tool for Nigerian SMEs.',
+    author: 'Zainab Yusuf',
+    tags: ['business', 'saas', 'dark'],
+    tool: 'cursor',
+    prompt: 'Build a business management dashboard for small businesses. Clean white design, revenue summary cards, recent transactions table, invoicing section, and client management. Professional and trustworthy.',
+  },
+]
+
+export const AVATAR_COLORS = ['#1A6BFF', '#7C3AED', '#059669', '#DC2626', '#D97706', '#DB2777', '#0891B2']
+
+export const TOOLS = ['all', 'cursor', 'bolt', 'v0', 'lovable', 'replit']
+
+export const SUGGESTIONS = [
+  'saas',
+  'dashboard',
+  'portfolio',
+  'landing page',
+  'e-commerce',
+  'ai tool',
+  'marketplace',
+  'blog',
+  'booking',
+  'social'
+];
