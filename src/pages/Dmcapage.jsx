@@ -1,4 +1,4 @@
-import './LegalPage.css'
+import './Legalpage.css'
 
 const LAST_UPDATED = 'May 17, 2025'
 const CONTACT_EMAIL = 'dmca@prompthall.com'

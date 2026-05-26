@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import './PersonalizePage.css'
+import './Personalizepage.css'
 
 const QUESTIONS = [
   {
