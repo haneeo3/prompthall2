@@ -133,7 +133,7 @@ h1, h2, h3, h4,
   .plb-msg { font-size: 12px; }
   .plb-pills { display: none; }
 }
-}
+
 .navbar.hidden { transform: translateY(-100%); }
 
 .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
