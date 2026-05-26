@@ -1,8 +1,101 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
+import UpgradeModal from '../components/UpgradeModal'
 import FilterBar from '../components/FilterBar'
 import GalleryCard from '../components/GalleryCard'
 import './Gallery.css'
+  
+function CookieBar() {
+  const [visible, setVisible] = useState(() => !localStorage.getItem('ph_cookies_accepted'))
+
+  if (!visible) return null
+
+  function accept() {
+    localStorage.setItem('ph_cookies_accepted', '1')
+    setVisible(false)
+  }
+
+  function manage() {
+    localStorage.setItem('ph_cookies_accepted', '1')
+    setVisible(false)
+    window.open('/cookies', '_blank')
+  }
+
+  return (
+    <div className="cookie-bar">
+      <div className="cookie-bar-inner">
+        <div className="cookie-bar-left">
+          <span className="cookie-bar-icon">🍪</span>
+          <p className="cookie-bar-text">
+            We use cookies to improve your experience. By continuing you agree to our{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
+          </p>
+        </div>
+        <div className="cookie-bar-actions">
+          <button className="cookie-btn-manage" onClick={manage}>Manage</button>
+          <button className="cookie-btn-accept" onClick={accept}>Accept all</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PromptLimitBar({ user, onUpgrade, copiedId }) {
+  const [count, setCount] = useState(null)
+  const [dismissed, setDismissed] = useState(false)
+  const [isPro, setIsPro] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    async function check() {
+      const { data: sub } = await supabase
+        .from('subscriptions').select('status')
+        .eq('user_id', user.id).eq('status', 'active').maybeSingle()
+      if (sub) { setIsPro(true); return }
+
+      const startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
+      const { count: used } = await supabase
+        .from('prompt_unlocks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('unlocked_at', startOfDay.toISOString())
+      setCount(2 - (used || 0))
+    }
+    check()
+  }, [user, copiedId])
+  
+  if (!user || isPro || dismissed || count === null) return null
+
+  const color = count >= 2 ? '#059669' : count === 1 ? '#D97706' : '#DC2626'
+  const bg = count >= 2 ? 'linear-gradient(90deg, #ECFDF5, #D1FAE5)' : count === 1 ? 'linear-gradient(90deg, #FFFBEB, #FEF3C7)' : 'linear-gradient(90deg, #FEF2F2, #FECACA)'
+  const border = count >= 2 ? '#6EE7B7' : count === 1 ? '#FDE68A' : '#FECACA'
+  const msg = count >= 2 ? `You have ${count} free prompt unlocks left today` : count === 1 ? 'Only 1 prompt unlock left today' : 'No prompt unlocks left today — upgrade to continue'
+  return (
+    <div className="plb-bar" style={{ background: bg, borderBottom: `1.5px solid ${border}` }}>
+      <div className="plb-inner">
+        <div className="plb-dot" style={{ background: color }}/>
+        <span className="plb-msg" style={{ color }}>
+          {msg}
+        </span>
+        <div className="plb-pills">
+          {[0,1].map(i => (
+            <div key={i} className="plb-pill" style={{ background: i < count ? color : `${color}30` }}/>
+          ))}
+        </div>
+        {count === 0 && (
+          <button className="plb-upgrade" onClick={onUpgrade} style={{ background: color }}>
+            Upgrade to Pro →
+          </button>
+        )}
+        <button className="plb-close" onClick={() => setDismissed(true)} style={{ color }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // ── Real tool website links ──────────────────────────────────────
 const TOOL_LINKS = {
@@ -153,25 +246,37 @@ const BLOG_POSTS = [
 ]
 
 // ── Font & Color of the Day ──────────────────────────────────────
-const FONT_OF_DAY = {
-  name: 'Fraunces',
-  category: 'Display Serif',
-  url: 'https://fonts.google.com/specimen/Fraunces',
-  use: 'Hero headlines, editorial pull quotes, anything that needs gravitas with personality.',
-  avoid: 'Body copy, small UI labels — it needs space to breathe.',
-  personality: 'Optical, quirky, slow and confident. Fraunces says "I was designed, not generated."',
-  sample: 'The prompt behind the pixel.',
+const ALL_FONTS = [
+  { name: 'Fraunces', category: 'Display Serif', url: 'https://fonts.google.com/specimen/Fraunces', use: 'Hero headlines, editorial pull quotes, anything that needs gravitas with personality.', avoid: 'Body copy, small UI labels — it needs space to breathe.', personality: 'Optical, quirky, slow and confident. Fraunces says "I was designed, not generated."', sample: 'The prompt behind the pixel.' },
+  { name: 'Playfair Display', category: 'Transitional Serif', url: 'https://fonts.google.com/specimen/Playfair+Display', use: 'Editorial headers, luxury brand sites, magazine-style layouts.', avoid: 'Small sizes — serifs get lost under 16px.', personality: 'Elegant, editorial, timeless. The font that makes everything feel like a fashion magazine.', sample: 'Design is not just what it looks like.' },
+  { name: 'Space Grotesk', category: 'Geometric Sans', url: 'https://fonts.google.com/specimen/Space+Grotesk', use: 'Tech products, SaaS dashboards, developer tools.', avoid: 'Long body copy — it can feel mechanical at reading sizes.', personality: 'Technical, confident, slightly quirky. Built for the internet generation.', sample: 'Ship fast. Design faster.' },
+  { name: 'DM Serif Display', category: 'High Contrast Serif', url: 'https://fonts.google.com/specimen/DM+Serif+Display', use: 'Landing page heroes, bold statements, premium product pages.', avoid: 'Body text or anything under 24px.', personality: 'Sharp, authoritative, high contrast. Demands attention without shouting.', sample: 'Every pixel has a purpose.' },
+  { name: 'Bricolage Grotesque', category: 'Variable Grotesque', url: 'https://fonts.google.com/specimen/Bricolage+Grotesque', use: 'Modern brand sites, creative agency headers, bold CTAs.', avoid: 'Long paragraphs — use a lighter weight companion for body.', personality: 'Expressive, playful structure. Like a Swiss grotesque that went to art school.', sample: 'Build what you can imagine.' },
+  { name: 'Cormorant Garamond', category: 'Classical Serif', url: 'https://fonts.google.com/specimen/Cormorant+Garamond', use: 'Luxury, fashion, editorial, anything needing old-world refinement.', avoid: 'Dark backgrounds — thin strokes disappear.', personality: 'Refined, classical, whisper-quiet luxury. It never raises its voice.', sample: 'Craft speaks louder than noise.' },
+  { name: 'Syne', category: 'Display Grotesque', url: 'https://fonts.google.com/specimen/Syne', use: 'Creative portfolios, art direction, experimental layouts.', avoid: 'Corporate or conservative contexts — it is deliberately irregular.', personality: 'Irregular, artistic, rule-breaking. Built for designers who color outside the lines.', sample: 'Rules exist to be redesigned.' },
+  { name: 'Outfit', category: 'Geometric Sans', url: 'https://fonts.google.com/specimen/Outfit', use: 'App UIs, dashboards, clean product sites.', avoid: 'High-end luxury brands — it is too friendly for that.', personality: 'Friendly, clean, approachable. The DM Sans for people who want something slightly rounder.', sample: 'Good design feels invisible.' },
+]
+
+const ALL_COLORS = [
+  { hex: '#2D6AFF', name: 'Signal Blue', rgb: '45, 106, 255', use: 'Primary CTAs, interactive states, brand accents on light backgrounds.', avoid: 'Dark backgrounds without lightness adjustment.', mood: 'Trust, momentum, digital-native. The colour every SaaS reaches for.', pairsWith: ['#0A0A0A', '#F8FAFF', '#FFFFFF', '#FFD166'] },
+  { hex: '#FF4757', name: 'Vermillion', rgb: '255, 71, 87', use: 'Error states, urgent CTAs, bold accent moments.', avoid: 'Large background areas — it overwhelms quickly.', mood: 'Energy, urgency, passion. Use sparingly for maximum punch.', pairsWith: ['#0A0A0A', '#FFF5F5', '#FFFFFF', '#2D6AFF'] },
+  { hex: '#2ED573', name: 'Emerald Pulse', rgb: '46, 213, 115', use: 'Success states, fintech accents, health and wellness brands.', avoid: 'Purple or red heavy palettes — clashes badly.', mood: 'Growth, vitality, go. Nature distilled into a hex code.', pairsWith: ['#0A0A0A', '#F0FFF4', '#FFFFFF', '#1A1A2E'] },
+  { hex: '#7C3AED', name: 'Deep Violet', rgb: '124, 58, 237', use: 'AI products, creative tools, premium SaaS.', avoid: 'Warm-toned palettes — fights with oranges and reds.', mood: 'Creative power, mystery, intelligence. The colour of the AI era.', pairsWith: ['#0A0A0A', '#F5F3FF', '#FFFFFF', '#FFD166'] },
+  { hex: '#FF6B35', name: 'Ember Orange', rgb: '255, 107, 53', use: 'Bold CTAs, food brands, startup energy.', avoid: 'Blue-heavy designs unless used as pure contrast.', mood: 'Bold, hungry, kinetic. Grabs attention and does not apologize.', pairsWith: ['#0A0A0A', '#FFF8F5', '#FFFFFF', '#1A6BFF'] },
+  { hex: '#06B6D4', name: 'Cyan Drift', rgb: '6, 182, 212', use: 'Tech brands, data visualization, modern dashboards.', avoid: 'Warm backgrounds — it needs cool or neutral tones to breathe.', mood: 'Fresh, digital, airy. Like the internet if it had a colour.', pairsWith: ['#0A0A0A', '#F0FDFF', '#FFFFFF', '#7C3AED'] },
+  { hex: '#F59E0B', name: 'Solar Amber', rgb: '245, 158, 11', use: 'Warnings, stars, premium badges, warm accents.', avoid: 'White text on this colour — contrast is too low.', mood: 'Warmth, attention, quality. Gold without the pretension.', pairsWith: ['#0A0A0A', '#FFFBEB', '#FFFFFF', '#1A6BFF'] },
+  { hex: '#EC4899', name: 'Lovable Pink', rgb: '236, 72, 153', use: 'Creative brands, beauty, bold personality statements.', avoid: 'Red-heavy palettes — they fight each other.', mood: 'Playful, bold, unapologetic. Joy at full saturation.', pairsWith: ['#0A0A0A', '#FDF2F8', '#FFFFFF', '#7C3AED'] },
+]
+
+function getDayIndex(arrayLength) {
+  const start = new Date('2025-01-01')
+  const today = new Date()
+  const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24))
+  return diff % arrayLength
 }
 
-const COLOR_OF_DAY = {
-  hex: '#2D6AFF',
-  name: 'Signal Blue',
-  rgb: '45, 106, 255',
-  use: 'Primary CTAs, interactive states, brand accents on white or very light backgrounds.',
-  avoid: 'Dark backgrounds without adjustment — increase lightness to ~60% first.',
-  mood: 'Trust, momentum, digital-native. The colour every SaaS reaches for — use it intentionally.',
-  pairsWith: ['#0A0A0A', '#F8FAFF', '#FFFFFF', '#FFD166'],
-}
+const FONT_OF_DAY = ALL_FONTS[getDayIndex(ALL_FONTS.length)]
+const COLOR_OF_DAY = ALL_COLORS[getDayIndex(ALL_COLORS.length)]
 
 // ── Tutorial videos ──────────────────────────────────────────────
 const TUTORIALS = [
@@ -238,7 +343,10 @@ function useInView(ref, threshold = 0.12) {
 }
 
 export default function Gallery({ onViewSite, onSubmit, onSignIn, onSignOut, onAdmin, user, isAdmin }) {
-  const [query, setQuery]           = useState('')
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+  const [copiedHex, setCopiedHex] = useState(false)
+const [copiedFont, setCopiedFont] = useState(false)
   const [activeTool, setActiveTool] = useState('all')
 const [activeCategory, setActiveCategory] = useState('all')
   const [sites, setSites]           = useState([])
@@ -248,7 +356,8 @@ const [activeCategory, setActiveCategory] = useState('all')
   const [searchFocused, setSearchFocused]   = useState(false)
   const [copiedId, setCopiedId] = useState(null)
 const [limitReached, setLimitReached] = useState(false)
-  const [tutPlaying, setTutPlaying] = useState({})
+const [showUpgrade, setShowUpgrade] = useState(false)
+const [tutPlaying, setTutPlaying] = useState({})
   const [currentPage, setCurrentPage] = useState(1)
 
   const searchRef   = useRef(null)
@@ -268,14 +377,59 @@ const [limitReached, setLimitReached] = useState(false)
   const inspireInView  = useInView(inspireRef)
 
   useEffect(() => {
-    async function fetchSites() {
-      const { data, error } = await supabase
-        .from('sites').select('*').eq('approved', true).order('created_at', { ascending: false })
-      if (!error && data) setSites(data)
-      setLoading(false)
+  async function fetchSites() {
+    const CACHE_KEY = 'ph_sites_cache'
+    const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+    // Try cache first
+    try {
+      const cached = localStorage.getItem(CACHE_KEY)
+      if (cached) {
+        const { data: cachedData, timestamp } = JSON.parse(cached)
+        if (Date.now() - timestamp < CACHE_TTL) {
+          setSites(cachedData)
+          setLoading(false)
+          // Refresh in background silently
+          fetchFromSupabase(CACHE_KEY, true)
+          return
+        }
+      }
+    } catch {}
+
+    // No cache or expired — fetch normally
+    fetchFromSupabase(CACHE_KEY, false)
+  }
+
+  async function fetchFromSupabase(CACHE_KEY, silent) {
+    if (!silent) setLoading(true)
+    const { data, error } = await supabase
+      .from('sites')
+      .select('*, ratings(rating)')
+      .eq('approved', true)
+      .order('created_at', { ascending: false })
+
+    if (!error && data) {
+      const enriched = data.map(site => {
+        const ratings = site.ratings || []
+        const avg = ratings.length
+          ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length
+          : 0
+        return { ...site, avg_rating: avg, rating_count: ratings.length }
+      })
+      setSites(enriched)
+      // Save to cache
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          data: enriched,
+          timestamp: Date.now()
+        }))
+      } catch {}
     }
-    fetchSites()
-  }, [])
+    setLoading(false)
+  }
+
+  fetchSites()
+}, [])
 
   const featured = useMemo(() => [...sites].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5), [sites])
 
@@ -355,6 +509,22 @@ const [limitReached, setLimitReached] = useState(false)
   async function handleCopyPrompt(site) {
   if (!user) { onSignIn(); return }
 
+  // Check if user is Pro
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('status')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .single()
+
+  if (sub) {
+    handleCopyPrompt(site)
+    setCopiedId(site.id)
+    setTimeout(() => setCopiedId(null), 2000)
+    return
+  }
+
+  // Free user — check limit
   const startOfDay = new Date()
   startOfDay.setHours(0, 0, 0, 0)
 
@@ -364,7 +534,7 @@ const [limitReached, setLimitReached] = useState(false)
     .eq('user_id', user.id)
     .gte('unlocked_at', startOfDay.toISOString())
 
-  if (count >= 76) { setLimitReached(true); return }
+  if (count >= 2) { setLimitReached(true); return }
 
   const { data: existing } = await supabase
     .from('prompt_unlocks')
@@ -389,6 +559,9 @@ const [limitReached, setLimitReached] = useState(false)
 
   return (
     <>
+      <PromptLimitBar user={user} onUpgrade={() => setShowUpgrade(true)} copiedId={copiedId} />
+      <CookieBar />
+      
       {/* ── NAVBAR ── */}
       <nav id="navbar" className="navbar">
         <a href="/" className="nav-logo">
@@ -422,14 +595,17 @@ const [limitReached, setLimitReached] = useState(false)
             Tutorials
           </a>
           {user ? (
-            <>
-              <span className="nav-user">{user.user_metadata?.full_name?.split(' ')[0] || 'Account'}</span>
-              <button className="nav-btn-ghost" onClick={onSignOut}>Sign out</button>
-              {isAdmin && <button className="nav-btn-ghost" onClick={onAdmin}>Admin</button>}
-            </>
-          ) : (
-            <button className="nav-btn-ghost" onClick={onSignIn}>Sign in</button>
-          )}
+  <>
+    <div className="nav-avatar" title={user.user_metadata?.full_name || user.email}>
+      {(user.user_metadata?.full_name || user.email || 'U')
+        .split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+    </div>
+    <button className="nav-btn-ghost" onClick={onSignOut}>Sign out</button>
+    {isAdmin && <button className="nav-btn-ghost" onClick={onAdmin}>Admin</button>}
+  </>
+) : (
+  <button className="nav-btn-ghost" onClick={onSignIn}>Sign in</button>
+)}
           <button className="nav-btn-primary" onClick={onSubmit}>+ Submit site</button>
           <button className="nav-mobile-toggle" onClick={() => setMobileMenuOpen(o => !o)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -448,7 +624,13 @@ const [limitReached, setLimitReached] = useState(false)
           <a href="https://www.youtube.com/@olajobihaneef" target="_blank" rel="noreferrer" className="mobile-link">Tutorials</a>
           {user ? (
             <>
-              <span className="mobile-user">{user.user_metadata?.full_name || user.email}</span>
+              <div className="mobile-avatar-row">
+  <div className="nav-avatar nav-avatar--mobile">
+    {(user.user_metadata?.full_name || user.email || 'U')
+      .split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+  </div>
+  <span className="mobile-user">{user.user_metadata?.full_name || user.email}</span>
+</div>
               <button className="mobile-link" onClick={() => { onSignOut(); setMobileMenuOpen(false) }}>Sign out</button>
               {isAdmin && <button className="mobile-link" onClick={() => { onAdmin(); setMobileMenuOpen(false) }}>Admin</button>}
             </>
@@ -526,9 +708,9 @@ const [limitReached, setLimitReached] = useState(false)
                           <p className="featured-desc">{site.description}</p>
                           <div className="featured-ctas">
                             <button className="featured-btn-visit" onClick={e => { e.stopPropagation(); window.open(site.url, '_blank') }}>Visit site ↗</button>
-                            <button className="featured-btn-view" onClick={e => { e.stopPropagation(); if (!user) { onSignIn(); return } navigator.clipboard.writeText(site.prompt); setCopiedId(site.id); setTimeout(() => setCopiedId(null), 2000) }}>
-                              {copiedId === site.id ? '✓ Copied!' : 'Copy prompt'}
-                            </button>
+                            <button className="featured-btn-view" onClick={e => { e.stopPropagation(); if (!user) { onSignIn(); return } navigate(`/personalise/${site.id}`) }}>
+   Personalise prompt
+</button>
                           </div>
                         </div>
                       </div>
@@ -586,12 +768,11 @@ const [limitReached, setLimitReached] = useState(false)
                 {pageSites.map((site, i) => (
                   <div key={site.id} className="gallery-card-wrapper" style={{ '--card-delay': `${(i % 10) * 0.05}s` }}>
                     <GalleryCard
-                      site={site} index={i}
-                      onView={() => onViewSite(site)}
-                      onSignIn={onSignIn} user={user}
-                      onCopyPrompt={() => handleCopyPrompt(site)}
-                      copied={copiedId === site.id}
-                    />
+  site={site} index={i}
+  onView={() => onViewSite(site)}
+  onSignIn={onSignIn}
+  user={user}
+/>
                   </div>
                 ))}
               </div>
@@ -655,14 +836,29 @@ const [limitReached, setLimitReached] = useState(false)
             <div className="inspire-grid">
               {/* Font panel */}
               <div className="inspire-panel inspire-panel--font">
-                <div className="inspire-tag">Font of the Day</div>
-                <div className="inspire-font-sample" style={{ fontFamily: FONT_OF_DAY.name + ', serif' }}>
-                  {FONT_OF_DAY.sample}
-                </div>
-                <div className="inspire-panel-name">
-                  {FONT_OF_DAY.name}
-                  <span className="inspire-panel-category">{FONT_OF_DAY.category}</span>
-                </div>
+                <div className="inspire-panel-header">
+  <div className="inspire-tag">Font of the Day</div>
+  <button
+    className="inspire-copy-btn"
+    onClick={() => {
+      navigator.clipboard.writeText(FONT_OF_DAY.name)
+      setCopiedFont(true)
+      setTimeout(() => setCopiedFont(false), 2000)
+    }}
+  >
+    {copiedFont
+      ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Copied!</>
+      : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy name</>
+    }
+  </button>
+</div>
+<div className="inspire-font-sample" style={{ fontFamily: FONT_OF_DAY.name + ', serif' }}>
+  {FONT_OF_DAY.sample}
+</div>
+<div className="inspire-panel-name">
+  {FONT_OF_DAY.name}
+  <span className="inspire-panel-category">{FONT_OF_DAY.category}</span>
+</div>
                 <div className="inspire-facts">
                   <div className="inspire-fact">
                     <span className="inspire-fact-label">Best for</span>
@@ -684,8 +880,23 @@ const [limitReached, setLimitReached] = useState(false)
 
               {/* Color panel */}
               <div className="inspire-panel inspire-panel--color">
-                <div className="inspire-tag">Color of the Day</div>
-                <div className="inspire-color-swatch">
+                <div className="inspire-panel-header">
+  <div className="inspire-tag">Color of the Day</div>
+  <button
+    className="inspire-copy-btn"
+    onClick={() => {
+      navigator.clipboard.writeText(COLOR_OF_DAY.hex)
+      setCopiedHex(true)
+      setTimeout(() => setCopiedHex(false), 2000)
+    }}
+  >
+    {copiedHex
+      ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Copied!</>
+      : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy hex</>
+    }
+  </button>
+</div>
+<div className="inspire-color-swatch">
                   <div className="inspire-swatch-main" style={{ background: COLOR_OF_DAY.hex }} />
                   <div className="inspire-swatch-pairs">
                     {COLOR_OF_DAY.pairsWith.map(c => (
@@ -852,12 +1063,12 @@ const [limitReached, setLimitReached] = useState(false)
           <div className="footer-col"><h4>AI Tools</h4><ul>{Object.entries(TOOL_LINKS).slice(0, 6).map(([name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer">{name} ↗</a></li>)}</ul></div>
           <div className="footer-col"><h4>More Tools</h4><ul>{Object.entries(TOOL_LINKS).slice(6).map(([name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer">{name} ↗</a></li>)}</ul></div>
           <div className="footer-col"><h4>Learn</h4><ul><li><a href="https://www.youtube.com/@olajobihaneef" target="_blank" rel="noreferrer">Tutorials</a></li><li><a href="https://medium.com/@prompthall" target="_blank" rel="noreferrer">Blog</a></li><li><a href="#">Guides</a></li></ul></div>
-          <div className="footer-col"><h4>Legal</h4><ul><li><a href="#">Privacy Policy</a></li><li><a href="#">DMCA</a></li><li><a href="#">Cookie Policy</a></li></ul></div>
+          <div className="footer-col"><h4>Legal</h4><ul><li><a href="/privacy">Privacy Policy</a></li><li><a href="/dmca">DMCA</a></li><li><a href="/cookies">Cookie Policy</a></li></ul></div>
         </div>
         <div className="footer-bottom">
           <span className="footer-copy">© 2025 PromptHall. All rights reserved.</span>
           <div className="footer-bottom-links">
-            <a href="#">About</a><a href="#">FAQs</a><a href="#">Privacy Policy</a><a href="mailto:prompthall@gmail.com">Contact</a>
+            <a href="#">About</a><a href="#">FAQs</a><a href="/privacy">Privacy Policy</a><a href="mailto:prompthall@gmail.com">Contact</a>
           </div>
         </div>
       </footer>
@@ -868,13 +1079,67 @@ const [limitReached, setLimitReached] = useState(false)
     */}{limitReached && (
   <div className="limit-backdrop" onClick={() => setLimitReached(false)}>
     <div className="limit-modal" onClick={e => e.stopPropagation()}>
-      <div className="limit-icon">⚡</div>
+      <div className="upgrade-illustration">
+  <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* Background circle */}
+    <circle cx="60" cy="60" r="56" fill="#EEF3FF" />
+    
+    {/* Stars */}
+    <circle cx="25" cy="30" r="2" fill="#1A6BFF" opacity="0.4"/>
+    <circle cx="95" cy="25" r="1.5" fill="#1A6BFF" opacity="0.3"/>
+    <circle cx="100" cy="70" r="2" fill="#1A6BFF" opacity="0.4"/>
+    <circle cx="18" cy="75" r="1.5" fill="#1A6BFF" opacity="0.3"/>
+    <circle cx="40" cy="15" r="1" fill="#1A6BFF" opacity="0.5"/>
+    <circle cx="85" cy="95" r="1" fill="#1A6BFF" opacity="0.4"/>
+    <circle cx="30" cy="95" r="1.5" fill="#1A6BFF" opacity="0.3"/>
+    <circle cx="90" cy="45" r="1" fill="#1A6BFF" opacity="0.5"/>
+
+    {/* Rocket trail */}
+    <ellipse cx="67" cy="82" rx="5" ry="12" fill="#FFD166" opacity="0.6" transform="rotate(-35 67 82)"/>
+    <ellipse cx="64" cy="87" rx="3" ry="8" fill="#FF6B35" opacity="0.4" transform="rotate(-35 64 87)"/>
+
+    {/* Rocket body */}
+    <path d="M60 28 C60 28 45 45 45 65 L60 72 L75 65 C75 45 60 28 60 28Z" fill="#1A6BFF"/>
+    
+    {/* Rocket nose */}
+    <path d="M60 28 C60 28 52 38 52 45 L60 42 L68 45 C68 38 60 28 60 28Z" fill="#0A3FCC"/>
+    
+    {/* Rocket window */}
+    <circle cx="60" cy="54" r="6" fill="white" opacity="0.9"/>
+    <circle cx="60" cy="54" r="4" fill="#EEF3FF"/>
+    <circle cx="60" cy="54" r="2" fill="#1A6BFF" opacity="0.6"/>
+
+    {/* Rocket fins */}
+    <path d="M45 65 L38 78 L52 70Z" fill="#0A3FCC"/>
+    <path d="M75 65 L82 78 L68 70Z" fill="#0A3FCC"/>
+
+    {/* Rocket exhaust */}
+    <ellipse cx="60" cy="73" rx="6" ry="4" fill="#FFD166"/>
+    <ellipse cx="60" cy="76" rx="4" ry="3" fill="#FF6B35" opacity="0.8"/>
+
+    {/* Sparkles */}
+    <path d="M35 48 L37 44 L39 48 L43 50 L39 52 L37 56 L35 52 L31 50Z" fill="#FFD166" opacity="0.8"/>
+    <path d="M80 38 L81.5 35 L83 38 L86 39.5 L83 41 L81.5 44 L80 41 L77 39.5Z" fill="#FFD166" opacity="0.6"/>
+  </svg>
+</div>
       <h2>Daily limit reached</h2>
       <p>Free accounts can unlock 2 prompts per day. Upgrade to Pro for unlimited access and AI prompt customization.</p>
-      <button className="limit-btn-pro">Upgrade to Pro → $9/month</button>
+      <button className="limit-btn-pro" onClick={() => { setLimitReached(false); setShowUpgrade(true) }}>Upgrade to Pro →</button>
       <button className="limit-btn-ghost" onClick={() => setLimitReached(false)}>Maybe later</button>
     </div>
   </div>
+)}
+
+{showUpgrade && (
+  <UpgradeModal
+    user={user}
+    onClose={() => setShowUpgrade(false)}
+    onSuccess={(response) => {
+      console.log('Payment success:', response)
+      setShowUpgrade(false)
+      alert('Payment successful! Your Pro account is being activated.')
+    }}
+  />
 )} 
 
 
