@@ -41,61 +41,6 @@ function CookieBar() {
   )
 }
 
-function PromptLimitBar({ user, onUpgrade, copiedId }) {
-  const [count, setCount] = useState(null)
-  const [dismissed, setDismissed] = useState(false)
-  const [isPro, setIsPro] = useState(false)
-
-  useEffect(() => {
-    if (!user) return
-    async function check() {
-      const { data: sub } = await supabase
-        .from('subscriptions').select('status')
-        .eq('user_id', user.id).eq('status', 'active').maybeSingle()
-      if (sub) { setIsPro(true); return }
-
-      const startOfDay = new Date()
-      startOfDay.setHours(0, 0, 0, 0)
-      const { count: used } = await supabase
-        .from('prompt_unlocks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('unlocked_at', startOfDay.toISOString())
-      setCount(2 - (used || 0))
-    }
-    check()
-  }, [user, copiedId])
-  
-  if (!user || isPro || dismissed || count === null) return null
-
-  const color = count >= 2 ? '#059669' : count === 1 ? '#D97706' : '#DC2626'
-  const bg = count >= 2 ? 'linear-gradient(90deg, #ECFDF5, #D1FAE5)' : count === 1 ? 'linear-gradient(90deg, #FFFBEB, #FEF3C7)' : 'linear-gradient(90deg, #FEF2F2, #FECACA)'
-  const border = count >= 2 ? '#6EE7B7' : count === 1 ? '#FDE68A' : '#FECACA'
-  const msg = count >= 2 ? `You have ${count} free prompt unlocks left today` : count === 1 ? 'Only 1 prompt unlock left today' : 'No prompt unlocks left today — upgrade to continue'
-  return (
-    <div className="plb-bar" style={{ background: bg, borderBottom: `1.5px solid ${border}` }}>
-      <div className="plb-inner">
-        <div className="plb-dot" style={{ background: color }}/>
-        <span className="plb-msg" style={{ color }}>
-          {msg}
-        </span>
-        <div className="plb-pills">
-          {[0,1].map(i => (
-            <div key={i} className="plb-pill" style={{ background: i < count ? color : `${color}30` }}/>
-          ))}
-        </div>
-        {count === 0 && (
-          <button className="plb-upgrade" onClick={onUpgrade} style={{ background: color }}>
-            Upgrade to Pro →
-          </button>
-        )}
-        <button className="plb-close" onClick={() => setDismissed(true)} style={{ color }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-    </div>
-  )
-}
 
 // ── Real tool website links ──────────────────────────────────────
 const TOOL_LINKS = {
@@ -202,6 +147,7 @@ function expandQuery(q) {
   return Array.from(expanded)
 }
 
+
 // ── Scrolling prompt rows ────────────────────────────────────────
 const PROMPT_ROWS = [
   ['Build me a SaaS landing page with animated hero, pricing table, and dark mode','Create a restaurant website with online booking, menu gallery, and contact form','Design a startup pitch page with scroll animations and investor-ready layout','Make a modern e-commerce store with product cards, cart, and checkout flow','Build a personal portfolio with case studies, skills section, and blog'],
@@ -209,7 +155,6 @@ const PROMPT_ROWS = [
   ['Build a job board with company profiles, search filters, and application flow','Design a travel booking platform with destination cards and itinerary builder','Create a gaming leaderboard site with live scores and player profiles','Make a crypto portfolio tracker with live prices and performance charts','Build an event ticketing platform with seat selection and QR code generation'],
   ['Design a brutalist portfolio that breaks every design rule intentionally','Create a glassmorphism dashboard with blur effects and neon accents','Build an editorial magazine layout with bold typography and full-bleed images','Make a dark-mode SaaS app with sidebar navigation and data visualizations','Create a minimal agency site with whitespace, clean grid, and hover effects'],
 ]
-
 // ── Real blog posts ──────────────────────────────────────────────
 // Images live in /public — referenced as '/blog (N).png'
 const BLOG_POSTS = [
@@ -292,12 +237,12 @@ const CARDS_PER_PAGE = 10
 // ── Flip-clock word cycler ───────────────────────────────────────
 // Each word shown in a different premium Google Font
 const FLIP_WORDS = [
-  { word: 'Choose',   font: "'Fraunces', serif",           style: 'italic' },
-  { word: 'Choose',   font: "'Playfair Display', serif",   style: 'normal' },
-  { word: 'Choose',   font: "'Space Grotesk', sans-serif", style: 'normal' },
-  { word: 'Choose',   font: "'DM Serif Display', serif",   style: 'italic' },
-  { word: 'Choose',   font: "'Cormorant Garamond', serif", style: 'italic' },
-  { word: 'Choose',   font: "'Cabinet Grotesk', sans-serif", style: 'normal' },
+  { word: 'Choose', font: "'Cormorant Garamond', serif",  style: 'italic' },
+{ word: 'Select', font: "'Cormorant Garamond', serif",         style: 'italic' },
+{ word: 'Tap', font: "'Cormorant Garamond', serif",   style: 'italic' },
+{ word: 'Claim', font: "'Cormorant Garamond', serif",                style: 'italic' },
+{ word: 'Deploy', font: "'Cormorant Garamond', serif",  style: 'italic' },
+{ word: 'Choose', font: "'Cormorant Garamond', serif",        style: 'italic' },
 ]
 
 function FlipWord() {
@@ -483,20 +428,63 @@ const [tutPlaying, setTutPlaying] = useState({})
   }, [featured.length])
 
   useEffect(() => {
-    let lastScroll = 0
-    const handleScroll = () => {
-      const nav = document.getElementById('navbar')
-      const btn = document.getElementById('back-to-top')
-      const curr = window.scrollY
-      if (curr > lastScroll && curr > 80) nav?.classList.add('hidden')
-      else nav?.classList.remove('hidden')
-      lastScroll = curr
-      if (curr > 400) btn?.classList.add('visible')
-      else btn?.classList.remove('visible')
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  const bg = document.getElementById('prompt-bg')
+  if (!bg) return
+
+  let mouseX = window.innerWidth / 2
+  let mouseY = window.innerHeight / 2
+  let rafId = null
+
+  const chips = bg.querySelectorAll('[data-chip="true"]')
+
+  function animate() {
+    chips.forEach(chip => {
+      const rect = chip.getBoundingClientRect()
+      const chipX = rect.left + rect.width / 2
+      const chipY = rect.top + rect.height / 2
+
+      const dx = chipX - mouseX
+      const dy = chipY - mouseY
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      const radius = 180
+
+      if (dist < radius) {
+        const force = (1 - dist / radius) * 28
+        const angle = Math.atan2(dy, dx)
+        const pushX = Math.cos(angle) * force
+        const pushY = Math.sin(angle) * force
+        chip.style.transform = `translate(${pushX}px, ${pushY}px)`
+        chip.style.opacity = `${0.12 + (dist / radius) * 0.12}`
+      } else {
+        chip.style.transform = 'translate(0px, 0px)'
+        chip.style.opacity = ''
+      }
+    })
+    rafId = requestAnimationFrame(animate)
+  }
+
+  function onMouseMove(e) {
+    mouseX = e.clientX
+    mouseY = e.clientY
+  }
+
+  function onMouseLeave() {
+    chips.forEach(chip => {
+      chip.style.transform = 'translate(0px, 0px)'
+      chip.style.opacity = ''
+    })
+  }
+
+  window.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseleave', onMouseLeave)
+  rafId = requestAnimationFrame(animate)
+
+  return () => {
+    window.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseleave', onMouseLeave)
+    cancelAnimationFrame(rafId)
+  }
+}, [])
 
   useEffect(() => {
     function handleClick(e) {
@@ -559,7 +547,6 @@ const [tutPlaying, setTutPlaying] = useState({})
 
   return (
     <>
-      <PromptLimitBar user={user} onUpgrade={() => setShowUpgrade(true)} copiedId={copiedId} />
       <CookieBar />
       
       {/* ── NAVBAR ── */}
@@ -645,45 +632,50 @@ const [tutPlaying, setTutPlaying] = useState({})
 
         {/* ── HERO ── */}
         {!isSearching && (
-          <section className="hero-text-section">
-            <div className="hero-prompt-bg" aria-hidden="true">
-              {PROMPT_ROWS.map((row, ri) => (
-                <div key={ri} className={`prompt-row prompt-row--${ri % 2 === 0 ? 'left' : 'right'}`} style={{ '--row-speed': `${55 + ri * 18}s` }}>
-                  <div className="prompt-track">
-                    {[...row, ...row].map((p, i) => <span key={i} className="prompt-chip">{p}</span>)}
+          <section className="hero-text-section" style={{ backgroundImage: 'url(/public/hero-image.jpg.jpg)' }}>
+            <div className="hero-overlay" />
+            <div className="hero-text-inner">
+              <div className="hero-left">
+                <h1 className="hero-headline">
+                  <div className="hero-curtain-row">
+                    <span className="curtain-left">Stop</span>
+                    <span className="curtain-right">Guessing.</span>
+                  </div>
+                  <div className="hero-curtain-row hero-curtain-row--2">
+                    <FlipWord />
+                    <span className="curtain-right-static">a prompt.</span>
+                  </div>
+                </h1>
+                
+                <p className="hero-sub">
+                 Copy prompts that actually work. Build faster.
+                </p>
+                
+                <div className="hero-actions">
+                  <button className="hero-cta-primary bouncy" onClick={() => galleryRef.current?.scrollIntoView({ behavior: 'smooth' })}>
+                    Browse the gallery ↓
+                  </button>
+                  <button className="hero-cta-ghost" onClick={onSubmit}>
+                    Submit your site →
+                  </button>
+                </div>
+
+                {/* User Circles - A, B, C only */}
+                <div className="hero-users-section">
+                  <div className="hero-user-circles">
+                    {['KO', 'TW', 'M'].map((letter, i) => {
+                      const colors = ['#1A6BFF', '#7C3AED', '#FF6B35'];
+                      return (
+                        <div key={i} className="hero-user-circle" style={{ background: colors[i] }}>
+                          {letter}
+                        </div>
+                      );
+                    })}
+                    <div className="hero-users-badge">
+                      <strong>200+</strong> builders
+                    </div>
                   </div>
                 </div>
-              ))}
-              <div className="hero-bg-fade-left" /><div className="hero-bg-fade-right" />
-              <div className="hero-bg-fade-top"  /><div className="hero-bg-fade-bottom"/>
-            </div>
-
-            <div className="hero-text-inner">
-              <div className="hero-eyebrow">Used by 100+ vibe coders worldwide</div>
-              <h1 className="hero-headline">
-                <div className="hero-curtain-row">
-                  <span className="curtain-left">Stop</span>
-                  <span className="curtain-right">guessing.</span>
-                </div>
-                <div className="hero-curtain-row hero-curtain-row--2">
-                  {/* Flip-clock word cycling through premium fonts */}
-                  <FlipWord />
-                  <span className="curtain-right-static">the prompt.</span>
-                </div>
-              </h1>
-              <p className="hero-sub">
-                Every site here was built with AI. Every prompt is unlockable. Browse, get inspired, and build something better — faster than you ever thought possible.
-              </p>
-              <div className="hero-actions">
-                <button className="hero-cta-primary" onClick={onSubmit}>Submit your site →</button>
-                <button className="hero-cta-ghost" onClick={onSignIn}>Get free access</button>
-              </div>
-              <div className="hero-stats">
-                <div className="hero-stat"><strong>{sites.length}+</strong><span>Sites</span></div>
-                <div className="hero-stat-divider" />
-                <div className="hero-stat"><strong>100%</strong><span>Real prompts</span></div>
-                <div className="hero-stat-divider" />
-                <div className="hero-stat"><strong>Free</strong><span>To browse</span></div>
               </div>
             </div>
           </section>
@@ -1034,7 +1026,7 @@ const [tutPlaying, setTutPlaying] = useState({})
             <div className="submit-inner">
               <div className="submit-glow" />
               <p className="section-eyebrow">Get featured</p>
-              <h2 className="submit-title">Submit your website for<br/>visibility and recognition.</h2>
+              <h2 className="submit-title">Submit your website.</h2>
               <p className="submit-desc">Join hundreds of builders showcasing their AI-built sites. Get discovered, get inspired, get credited.</p>
               <button className="submit-cta-btn bouncy" onClick={onSubmit}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -1043,8 +1035,9 @@ const [tutPlaying, setTutPlaying] = useState({})
             </div>
           </section>
         )}
-      </main>
+        </main>
 
+      
       {/* ── FOOTER ── */}
       <footer className="site-footer">
         <div className="footer-top">
@@ -1066,7 +1059,7 @@ const [tutPlaying, setTutPlaying] = useState({})
           <div className="footer-col"><h4>Legal</h4><ul><li><a href="/privacy">Privacy Policy</a></li><li><a href="/dmca">DMCA</a></li><li><a href="/cookies">Cookie Policy</a></li></ul></div>
         </div>
         <div className="footer-bottom">
-          <span className="footer-copy">© 2025 PromptHall. All rights reserved.</span>
+          <span className="footer-copy">© 2026 PromptHall. All rights reserved.</span>
           <div className="footer-bottom-links">
             <a href="#">About</a><a href="#">FAQs</a><a href="/privacy">Privacy Policy</a><a href="mailto:prompthall@gmail.com">Contact</a>
           </div>
@@ -1149,7 +1142,7 @@ const [tutPlaying, setTutPlaying] = useState({})
   id="whatsapp-btn"
   title="Chat on WhatsApp"
 >
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="#0A0A0A">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
   </svg>
 </a>

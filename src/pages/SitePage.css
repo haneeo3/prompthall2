@@ -2322,3 +2322,177 @@
   .sp-hero-lovable-sub { display: none; }
   .sp-prompt-hero-card { padding: 18px; }
 }
+.sp-prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.sp-prompt-label {
+  font-family: var(--sp-font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: #0A0A0A;
+  margin: 0 0 3px;
+}
+
+.sp-prompt-sublabel {
+  font-family: var(--sp-font-body);
+  font-size: 12px;
+  color: rgba(0,0,0,0.4);
+  margin: 0;
+}
+
+.sp-prompt-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sp-prompt-copy-btn {
+  font-family: var(--sp-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  background: #0A0A0A;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sp-prompt-copy-btn:hover { background: #1A6BFF; }
+
+.sp-prompt-personalise-btn {
+  font-family: var(--sp-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  background: transparent;
+  color: #0A0A0A;
+  border: 1.5px solid rgba(0,0,0,0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sp-prompt-personalise-btn:hover {
+  border-color: #1A6BFF;
+  color: #1A6BFF;
+}
+/* ── Prompt locked / blur gate ── */
+.sp-prompt-locked-wrap {
+  position: relative;
+  border-radius: var(--sp-radius);
+  overflow: hidden;
+}
+
+.sp-prompt-box--preview {
+  pointer-events: none;
+  user-select: none;
+}
+
+.sp-prompt-text--preview {
+  position: relative;
+  max-height: 120px;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 85%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 85%);
+}
+
+.sp-prompt-preview-badge {
+  font-family: var(--sp-font-body);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 99px;
+  padding: 3px 9px;
+}
+
+.sp-prompt-blur-gate {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 75%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 28px;
+  background: linear-gradient(to bottom, transparent 0%, rgba(15,17,23,0.92) 40%, rgba(15,17,23,0.98) 100%);
+  backdrop-filter: blur(3px);
+}
+
+.sp-blur-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.sp-blur-lock {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 4px;
+}
+
+.sp-blur-title {
+  font-family: var(--sp-font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.sp-blur-sub {
+  font-family: var(--sp-font-body);
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.45);
+  margin: 0;
+}
+
+.sp-blur-btn {
+  margin-top: 4px;
+  font-family: var(--sp-font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 11px 24px;
+  background: #fff;
+  color: #0A0A0A;
+  border: none;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.18s;
+  letter-spacing: -0.01em;
+}
+
+.sp-blur-btn:hover { background: #1A6BFF; color: #fff; transform: translateY(-1px); }
+.sp-blur-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.sp-blur-btn--upgrade {
+  background: linear-gradient(135deg, #1A6BFF, #7C3AED);
+  color: #fff;
+}
+
+.sp-blur-btn--upgrade:hover {
+  background: linear-gradient(135deg, #0A5BEF, #6C2ADD);
+  color: #fff;
+}

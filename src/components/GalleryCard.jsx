@@ -9,18 +9,14 @@ const TOOL_LABELS = {
   aider: 'Aider', continue: 'Continue', other: 'Other',
 }
 
-const TOOL_COLORS = {
-  cursor: '#000', v0: '#A855F7', bolt: '#F97316', lovable: '#EC4899',
-  replit: '#59B67C', windsurf: '#0EA5E9', claude: '#D97706',
-  chatgpt: '#10A37F', gemini: '#4285F4', copilot: '#5e5b63', other: '#94A3B8',
-}
+const TOOL_COLORS = {}
 
 export default function GalleryCard({ site, index, onView, onSignIn, user }) {
   const navigate = useNavigate()
   const authorName = site.author_name || site.author || 'Anonymous'
   const initials = authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
   const tags = site.tags || []
-  const toolColor = TOOL_COLORS[site.tool] || '#94A3B8'
+  const toolColor = '#94A3B8'
   const toolLabel = TOOL_LABELS[site.tool] || site.tool
   const avgRating = site.avg_rating || 0
   const ratingCount = site.rating_count || 0

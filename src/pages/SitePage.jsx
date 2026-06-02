@@ -83,31 +83,6 @@ function Avatar({ name, size = 38, bg = null }) {
   )
 }
 
-// ── PersonaliseBanner — links to PersonalizePage via onPersonalize() ──────
-function PersonaliseBanner({ user, onSignIn, onPersonalize }) {
-  function handleClick() {
-    if (!user) { onSignIn(); return }
-    onPersonalize()
-  }
-  return (
-    <button className="pp-cta" onClick={handleClick}>
-      <div className="pp-cta-glow" />
-      <div className="pp-cta-left">
-        <div className="pp-cta-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-        </div>
-        <div>
-          <p className="pp-cta-title">Make this prompt <em>yours</em></p>
-          <p className="pp-cta-sub">Answer a few questions → get a prompt personalised for your brand</p>
-        </div>
-      </div>
-      <div className="pp-cta-arrow">Personalise →</div>
-    </button>
-  )
-}
-
 export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }) {
   const [copied, setCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
@@ -127,6 +102,11 @@ export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }
   const [submitting, setSubmitting] = useState(false)
   const [commentsLoading, setCommentsLoading] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [unlockedPrompt, setUnlockedPrompt] = useState(null)
+const [unlockLoading, setUnlockLoading]   = useState(false)
+const [dailyCount, setDailyCount]         = useState(0)
+const [isPro, setIsPro]                   = useState(false)
+const [countChecked, setCountChecked]     = useState(false)
   const commentInputRef = useRef(null)
   const navigate = useNavigate()
 
@@ -157,18 +137,60 @@ export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }
     setComments(data || [])
     setCommentsLoading(false)
   }
-
+// 1. THIS HOOK SHOULD BE JUST ABOVE THE FIX:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchComments() }, [site])
 
+
+  // 2. FIRST PASTED HOOK (Comments Realtime Subscription)
   useEffect(() => {
     if (!site) return
     const channel = supabase.channel(`comments:${site.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `site_id=eq.${site.id}` }, () => fetchComments())
       .subscribe()
-    return () => supabase.removeChannel(channel)
-  }, [site]) // eslint-disable-line react-hooks/exhaustive-deps
+      
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [site])
 
+
+  // 3. SECOND PASTED HOOK (User Subscription & Unlock Limits Check)
+  useEffect(() => {
+    if (!user) { 
+      setCountChecked(true); 
+      return; 
+    }
+    
+    async function checkCount() {
+      const { data: sub } = await supabase
+        .from('subscriptions').select('status')
+        .eq('user_id', user.id).eq('status', 'active').maybeSingle()
+        
+      if (sub) { 
+        setIsPro(true); 
+        setCountChecked(true); 
+        return; 
+      }
+
+      const startOfDay = new Date(); 
+      startOfDay.setHours(0,0,0,0)
+      
+      const { count } = await supabase
+        .from('prompt_unlocks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('unlocked_at', startOfDay.toISOString())
+        
+      setDailyCount(count || 0)
+      setCountChecked(true)
+    }
+    
+    checkCount()
+  }, [user])
+
+
+  // 4. THIS LINE MUST BE DIRECTLY BELOW THE FIX:
   if (!site) return null
 
   const authorName = site.author_name || site.author || 'Anonymous'
@@ -204,7 +226,7 @@ export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }
       .eq('user_id', user.id).eq('status', 'active').single()
 
     if (sub) {
-      navigator.clipboard.writeText(site.prompt)
+      navigator.clipboard.writeText(unlockedPrompt || '')
       setCopied(true); setTimeout(() => setCopied(false), 2200); return
     }
 
@@ -222,10 +244,53 @@ export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }
       await supabase.from('prompt_unlocks').insert({ user_id: user.id, site_id: site.id })
     }
 
-    navigator.clipboard.writeText(site.prompt)
+    navigator.clipboard.writeText(unlockedPrompt || '')
     setCopied(true); setTimeout(() => setCopied(false), 2200)
   }
 
+  async function handleUnlock() {
+
+  if (!user) { onSignIn(); return }
+
+  if (isPro) {
+
+    await fetchFullPrompt(); return
+
+  }
+
+  if (dailyCount >= 2) { setLimitReached(true); return }
+
+  setUnlockLoading(true)
+
+  await fetchFullPrompt()
+
+  const { data: existing } = await supabase
+
+    .from('prompt_unlocks').select('id')
+
+    .eq('user_id', user.id).eq('site_id', site.id).maybeSingle()
+
+  if (!existing) {
+
+    await supabase.from('prompt_unlocks').insert({ user_id: user.id, site_id: site.id })
+
+  }
+
+  setDailyCount(c => c + 1)
+
+  setUnlockLoading(false)
+
+}
+
+async function fetchFullPrompt() {
+
+  const { data } = await supabase
+
+    .from('sites').select('prompt').eq('id', site.id).single()
+
+  if (data?.prompt) setUnlockedPrompt(data.prompt)
+
+}
   function handleCopyLink() {
     navigator.clipboard.writeText(window.location.href)
     setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2200)
@@ -342,85 +407,99 @@ export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }
               </div>
             </div>
           )}
-
 {/* ── PROMPT ── */}
 <div className="sp-prompt-section">
-  {/* Header card with all CTAs */}
-  <div className="sp-prompt-hero-card">
-    <div className="sp-prompt-hero-top">
-      <div className="sp-prompt-hero-label">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        The Prompt
-      </div>
-      <p className="sp-prompt-hero-sub">The exact prompt used to generate this site</p>
+  <div className="sp-prompt-header">
+    <div>
+      <p className="sp-prompt-label">The Prompt</p>
+      <p className="sp-prompt-sublabel">The exact prompt used to generate this site</p>
     </div>
-
-    <div className="sp-prompt-hero-actions">
-      {/* Copy prompt */}
-      {user
-        ? <button className="sp-hero-copy-btn" onClick={handleCopyPrompt}>
-            {copied
-              ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Copied!</>
-              : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy prompt</>
-            }
-          </button>
-        : <button className="sp-hero-copy-btn sp-hero-copy-outline" onClick={onSignIn}>Sign in to copy</button>
-      }
-
-      {/* Lovable */}
-      <a href="https://lovable.dev" target="_blank" rel="noreferrer" className="sp-hero-lovable-btn">
-        <svg width="15" height="15" viewBox="0 0 32 32" fill="none">
-          <path d="M16 28s-1.5-1-3.5-2.8C7.2 21 4 17.2 4 13a6 6 0 0112-1 6 6 0 0112 1c0 4.2-3.2 8-8.5 12.2C17.5 27 16 28 16 28Z" fill="white"/>
-        </svg>
-        Build with Lovable
-        <span className="sp-hero-lovable-sub">Turn prompts into live websites instantly</span>
-      </a>
-
-      {/* Personalise */}
-      {site.prompt && (
-        <button
-          className="sp-hero-personalise-btn"
-          onClick={() => user ? navigate(`/personalise/${site.id}`) : onSignIn()}
-        >
-          <div className="sp-hero-personalise-glow"/>
-          <div className="sp-hero-personalise-left">
-            <div className="sp-hero-personalise-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            </div>
-            <div>
-              <span className="sp-hero-personalise-title">Make this prompt <em>yours</em></span>
-              <span className="sp-hero-personalise-sub">Gemini rewrites it for your brand in seconds</span>
-            </div>
-          </div>
-          <span className="sp-hero-personalise-badge">Personalise →</span>
+    <div className="sp-prompt-btns">
+      {unlockedPrompt && (
+        <button className="sp-prompt-copy-btn" onClick={handleCopyPrompt}>
+          {copied ? '✓ Copied' : 'Copy prompt'}
+        </button>
+      )}
+      {unlockedPrompt && (
+        <button className="sp-prompt-personalise-btn"
+          onClick={() => user ? navigate(`/personalise/${site.id}`) : onSignIn()}>
+          Personalise →
         </button>
       )}
     </div>
   </div>
 
-  {user ? (
-    <div className="sp-prompt-box">
-      <div className="sp-prompt-toolbar">
-        <span className="sp-prompt-lang">prompt</span>
-        <button className="sp-prompt-copy-mini" onClick={handleCopyPrompt}>{copied ? '✓ Copied' : 'Copy'}</button>
-      </div>
-      <pre className="sp-prompt-text">{site.prompt}</pre>
-    </div>
-  ) : (
+  {!user ? (
     <div className="sp-prompt-gate">
       <div className="sp-gate-icon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
         </svg>
       </div>
       <div className="sp-gate-text">
         <p className="sp-gate-title">Sign in to unlock this prompt</p>
-        <p className="sp-gate-sub">Free account · 30 seconds · access every prompt in the gallery</p>
+        <p className="sp-gate-sub">Free account · 30 seconds · 2 free unlocks per day</p>
       </div>
       <button className="sp-gate-btn" onClick={onSignIn}>Create free account →</button>
     </div>
+  ) : unlockedPrompt ? (
+    <div className="sp-prompt-box">
+      <div className="sp-prompt-toolbar">
+        <span className="sp-prompt-lang">prompt</span>
+        <button className="sp-prompt-copy-mini" onClick={handleCopyPrompt}>
+          {copied ? '✓ Copied' : 'Copy'}
+        </button>
+      </div>
+      <pre className="sp-prompt-text">{unlockedPrompt}</pre>
+    </div>
+  ) : (
+    <div className="sp-prompt-locked-wrap">
+      {/* Preview — first 150 chars visible */}
+      <div className="sp-prompt-box sp-prompt-box--preview">
+        <div className="sp-prompt-toolbar">
+          <span className="sp-prompt-lang">prompt</span>
+          <span className="sp-prompt-preview-badge">Preview</span>
+        </div>
+        <pre className="sp-prompt-text sp-prompt-text--preview">
+          {site.prompt_preview || 'Loading preview...'}
+          <span className="sp-prompt-fade-line"/>
+        </pre>
+      </div>
+
+      {/* Blur overlay + unlock gate */}
+      <div className="sp-prompt-blur-gate">
+        <div className="sp-blur-content">
+          <div className="sp-blur-lock">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </div>
+          {countChecked && dailyCount < 2 ? (
+            <>
+              <p className="sp-blur-title">Unlock this prompt</p>
+              <p className="sp-blur-sub">{2 - dailyCount} of 2 free unlocks remaining today</p>
+              <button className="sp-blur-btn" onClick={handleUnlock} disabled={unlockLoading}>
+                {unlockLoading ? 'Unlocking...' : 'Unlock prompt →'}
+              </button>
+            </>
+          ) : countChecked && dailyCount >= 2 ? (
+            <>
+              <p className="sp-blur-title">Daily limit reached</p>
+              <p className="sp-blur-sub">You've used your 2 free unlocks today</p>
+              <button className="sp-blur-btn sp-blur-btn--upgrade" onClick={() => setShowUpgrade(true)}>
+                Upgrade to Pro — unlimited access
+              </button>
+            </>
+          ) : (
+            <p className="sp-blur-sub">Checking access...</p>
+          )}
+        </div>
+      </div>
+    </div>
   )}
 </div>
+
+       
 
           {/* ── VIDEO + HELP ── */}
           <div className="sp-guide-wrap">

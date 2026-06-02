@@ -2,120 +2,255 @@ import { useState, useEffect, useRef } from 'react'
 import './Personalizepage.css'
 
 const QUESTIONS = [
+
+  // ── BLOCK 1: FOUNDATION ──────────────────────────────────────────────────
   {
-    id: 'building',
-    label: 'What are you building?',
-    hint: 'Describe your idea in plain words',
+    id: 'business',
+    block: 1,
+    blockLabel: 'Foundation',
+    label: 'What is your business and what does it do?',
+    hint: 'One sentence — this becomes the brief for the whole site',
     type: 'text',
-    placeholder: 'e.g. A fashion store for handmade dresses in Lagos',
+    placeholder: 'e.g. We make and deliver fresh, healthy meals to busy families in Lagos',
     required: true,
   },
   {
     id: 'name',
-    label: 'Brand or project name',
-    hint: 'What should the website call you?',
+    block: 1,
+    blockLabel: 'Foundation',
+    label: 'What is your brand name?',
+    hint: 'This gets injected into every headline, footer, and meta tag',
     type: 'text',
     placeholder: 'e.g. Bella Studio',
     required: true,
   },
   {
-    id: 'audience',
-    label: 'Who is this for?',
-    hint: 'Describe your audience in plain language',
+    id: 'location',
+    block: 1,
+    blockLabel: 'Foundation',
+    label: 'Where are you based?',
+    hint: 'City and country — localises copy like "Lagos delivery" vs "London delivery"',
     type: 'text',
-    placeholder: 'e.g. Young professionals, mothers, gym owners in Abuja',
+    placeholder: 'e.g. Lagos, Nigeria',
+    required: true,
+  },
+
+  // ── BLOCK 2: CONVERSION ──────────────────────────────────────────────────
+  {
+    id: 'cta_action',
+    block: 2,
+    blockLabel: 'Conversion',
+    label: 'What is the ONE action you want visitors to take?',
+    hint: 'This sets every CTA button across the entire site',
+    type: 'options',
+    options: [
+      { label: 'Book a call',     value: 'Book a call — use a calendar booking CTA throughout' },
+      { label: 'Buy a product',   value: 'Buy a product — use shop / add to cart CTAs throughout' },
+      { label: 'Send a WhatsApp', value: 'Send a WhatsApp message — all CTAs open a WhatsApp chat link' },
+      { label: 'Sign up',         value: 'Sign up — use email signup / account creation CTAs throughout' },
+      { label: 'Get a quote',     value: 'Get a quote — use a quote request form as the primary CTA' },
+      { label: 'Visit the store', value: 'Visit the physical store — CTAs show address and directions' },
+    ],
+    required: true,
+  },
+  {
+    id: 'selling_point',
+    block: 2,
+    blockLabel: 'Conversion',
+    label: 'What is your biggest selling point over competitors?',
+    hint: 'This becomes the hero headline hook — be specific',
+    type: 'text',
+    placeholder: 'e.g. We deliver in 2 hours — no one else in Lagos does that',
+    required: true,
+  },
+  {
+    id: 'pricing_show',
+    block: 2,
+    blockLabel: 'Conversion',
+    label: 'Do you want to show pricing on the site?',
+    hint: 'Controls whether a pricing section is generated',
+    type: 'options',
+    options: [
+      { label: 'Yes — price range',  value: 'show_range' },
+      { label: 'Yes — exact prices', value: 'show_exact' },
+      { label: 'No — "Get a quote"', value: 'no_pricing' },
+    ],
+    required: true,
+  },
+  {
+    id: 'pricing_amount',
+    block: 2,
+    blockLabel: 'Conversion',
+    label: 'What is your starting price?',
+    hint: 'e.g. "From ₦5,000" or "Plans from $29/month"',
+    type: 'text',
+    placeholder: 'e.g. From ₦5,000 per order',
+    required: false,
+    conditional: (answers) => answers.pricing_show === 'show_range' || answers.pricing_show === 'show_exact',
+  },
+
+  // ── BLOCK 3: AUDIENCE ────────────────────────────────────────────────────
+  {
+    id: 'ideal_customer',
+    block: 3,
+    blockLabel: 'Audience',
+    label: 'Describe your ideal customer in one sentence',
+    hint: 'Gemini writes copy that speaks directly to this person',
+    type: 'text',
+    placeholder: 'e.g. Working mothers aged 25–40 in Abuja who want healthy food delivered fast',
     required: false,
   },
   {
-    id: 'style',
-    label: 'Visual style',
-    hint: 'Choose the overall look and feel',
+    id: 'problem_solved',
+    block: 3,
+    blockLabel: 'Audience',
+    label: 'What problem do you solve for them?',
+    hint: 'This becomes the pain point the hero section addresses',
+    type: 'text',
+    placeholder: "e.g. They don't have time to cook but still want their family eating well",
+    required: false,
+  },
+
+  // ── BLOCK 4: BRAND VOICE ─────────────────────────────────────────────────
+  {
+    id: 'voice',
+    block: 4,
+    blockLabel: 'Brand voice',
+    label: 'How should the site sound?',
+    hint: 'Every line of placeholder copy will match this voice',
     type: 'options',
     options: [
-      { label: 'Clean & Minimal', value: 'clean, modern, and minimal with generous white space' },
-      { label: 'Bold & Colorful', value: 'bold, vibrant, and colorful with strong typography' },
-      { label: 'Luxury & Elegant', value: 'luxury-inspired with refined typography and premium spacing' },
-      { label: 'Dark & Sleek', value: 'dark mode, sleek, and futuristic' },
-      { label: 'Warm & Friendly', value: 'warm, soft, and welcoming with earthy tones' },
+      { label: 'Confident & direct',  value: 'confident, direct, and no-nonsense — short punchy sentences' },
+      { label: 'Warm & friendly',     value: 'warm, friendly, and conversational — like talking to a trusted friend' },
+      { label: 'Luxury & refined',    value: 'luxury, refined, and aspirational — elevated language, no slang' },
+      { label: 'Energetic & bold',    value: 'energetic, bold, and motivating — lots of verbs and exclamation' },
+      { label: 'Calm & trustworthy',  value: 'calm, reassuring, and trustworthy — measured and credible tone' },
     ],
     required: false,
   },
   {
+    id: 'brand_inspiration',
+    block: 4,
+    blockLabel: 'Brand voice',
+    label: 'Any brand or website you admire?',
+    hint: 'Gemini uses this as a reference for design language and copy style',
+    type: 'text',
+    placeholder: 'e.g. Apple, Paystack, Flutterwave, Zara',
+    required: false,
+  },
+
+  // ── BLOCK 5: VISUAL ──────────────────────────────────────────────────────
+  {
     id: 'primary_color',
+    block: 5,
+    blockLabel: 'Visual',
     label: 'Primary color',
-    hint: 'Used for buttons, links, and highlights',
+    hint: 'Used for buttons, links, and highlights across the site',
     type: 'color-pick',
     colors: [
       { name: 'Midnight Black', hex: '#0A0A0A' },
-      { name: 'Navy Blue', hex: '#1E3A5F' },
-      { name: 'Royal Blue', hex: '#1A6BFF' },
-      { name: 'Deep Purple', hex: '#5B21B6' },
-      { name: 'Forest Green', hex: '#166534' },
-      { name: 'Emerald', hex: '#059669' },
-      { name: 'Crimson Red', hex: '#DC2626' },
-      { name: 'Rose Pink', hex: '#E11D74' },
-      { name: 'Burnt Orange', hex: '#EA580C' },
-      { name: 'Gold', hex: '#B45309' },
-      { name: 'Teal', hex: '#0D9488' },
-      { name: 'Slate Gray', hex: '#475569' },
+      { name: 'Navy Blue',      hex: '#1E3A5F' },
+      { name: 'Royal Blue',     hex: '#1A6BFF' },
+      { name: 'Deep Purple',    hex: '#5B21B6' },
+      { name: 'Forest Green',   hex: '#166534' },
+      { name: 'Emerald',        hex: '#059669' },
+      { name: 'Crimson Red',    hex: '#DC2626' },
+      { name: 'Rose Pink',      hex: '#E11D74' },
+      { name: 'Burnt Orange',   hex: '#EA580C' },
+      { name: 'Gold',           hex: '#B45309' },
+      { name: 'Teal',           hex: '#0D9488' },
+      { name: 'Slate Gray',     hex: '#475569' },
     ],
     required: false,
   },
   {
-    id: 'background_color',
-    label: 'Background color',
-    hint: 'The overall feel of the page',
-    type: 'color-pick',
-    colors: [
-      { name: 'Pure White', hex: '#FFFFFF' },
-      { name: 'Off White', hex: '#F8F7F4' },
-      { name: 'Warm Cream', hex: '#FBF8F3' },
-      { name: 'Light Gray', hex: '#F1F3F5' },
-      { name: 'Soft Beige', hex: '#F5F0E8' },
-      { name: 'Jet Black', hex: '#0A0A0A' },
-      { name: 'Charcoal', hex: '#1A1A1A' },
-      { name: 'Deep Navy', hex: '#0F1F3C' },
-      { name: 'Dark Slate', hex: '#1E293B' },
-    ],
-    required: false,
-  },
-  {
-    id: 'feeling',
-    label: 'What mood should it project?',
-    hint: 'Pick the overall tone',
+    id: 'background_tone',
+    block: 5,
+    blockLabel: 'Visual',
+    label: 'Background tone',
+    hint: 'Sets the overall page feel',
     type: 'options',
     options: [
-      { label: 'Professional', value: 'professional and polished' },
-      { label: 'Creative', value: 'creative and artistic' },
-      { label: 'Playful', value: 'fun and playful' },
-      { label: 'Calm', value: 'calm and serene' },
-      { label: 'Premium', value: 'premium and exclusive' },
-      { label: 'Experimental', value: 'experimental and distinctive' },
+      { label: 'Light',   value: 'light background — white or off-white surfaces' },
+      { label: 'Dark',    value: 'dark background — near-black or deep navy surfaces' },
+      { label: 'Neutral', value: 'neutral background — warm beige, soft gray, or cream surfaces' },
     ],
     required: false,
   },
   {
+    id: 'font_personality',
+    block: 5,
+    blockLabel: 'Visual',
+    label: 'Font personality',
+    hint: 'Controls the typographic character of the site',
+    type: 'options',
+    options: [
+      { label: 'Serif — editorial', value: 'serif editorial typeface — think Fraunces, Playfair, or similar' },
+      { label: 'Sans — modern',     value: 'clean sans-serif typeface — think Outfit, Inter, or similar' },
+      { label: 'Display — bold',    value: 'bold display typeface with strong personality — think Anton, Space Grotesk, or similar' },
+    ],
+    required: false,
+  },
+
+  // ── BLOCK 6: REAL CONTENT ────────────────────────────────────────────────
+  {
+    id: 'services',
+    block: 6,
+    blockLabel: 'Real content',
+    label: 'List up to 3 services or products you offer',
+    hint: 'These become actual service cards — not "Service 1, Service 2"',
+    type: 'text',
+    placeholder: 'e.g. Hair braiding, Lash extensions, Nail art',
+    required: false,
+  },
+  {
+    id: 'testimonial',
+    block: 6,
+    blockLabel: 'Real content',
+    label: 'Do you have any real customer feedback to share?',
+    hint: 'One quote is enough — Gemini writes 3 testimonials in the same tone',
+    type: 'text',
+    placeholder: '"Best jollof I\'ve ever ordered — delivered in 45 minutes!" — Tolu, Lekki',
+    required: false,
+  },
+  {
+    id: 'contact',
+    block: 6,
+    blockLabel: 'Real content',
+    label: 'Contact details to include',
+    hint: 'Phone, WhatsApp, email, address — paste any combination',
+    type: 'text',
+    placeholder: 'e.g. +234 801 234 5678 · hello@bella.com · 14 Admiralty Way, Lekki',
+    required: false,
+  },
+
+  // ── BLOCK 7: PAGES & FEATURES ────────────────────────────────────────────
+  {
     id: 'pages',
+    block: 7,
+    blockLabel: 'Pages & features',
     label: 'Pages to include',
     hint: 'Select all that apply',
     type: 'multi',
-    options: ['Home', 'About', 'Services', 'Portfolio', 'Shop', 'Pricing', 'Blog', 'Contact', 'FAQ', 'Gallery', 'Testimonials', 'Booking'],
+    options: [
+      'Home', 'About', 'Services', 'Portfolio', 'Shop',
+      'Pricing', 'Blog', 'Contact', 'FAQ', 'Gallery',
+      'Testimonials', 'Booking',
+    ],
     required: false,
   },
   {
     id: 'features',
+    block: 7,
+    blockLabel: 'Pages & features',
     label: 'Special features',
     hint: 'Select anything you want built in',
     type: 'multi',
-    options: ['Online Booking', 'Payments', 'Login / Signup', 'WhatsApp Button', 'Photo Gallery', 'Newsletter', 'Search', 'Dark Mode', 'Animations', 'Map', 'Social Media Links'],
-    required: false,
-  },
-  {
-    id: 'extra',
-    label: 'Anything else?',
-    hint: 'Final details, requests, or preferences',
-    type: 'text',
-    placeholder: 'e.g. Make it feel cinematic, add a hero video',
+    options: [
+      'Online Booking', 'Payments', 'Login / Signup', 'WhatsApp Button',
+      'Photo Gallery', 'Newsletter', 'Search', 'Dark Mode',
+      'Animations', 'Map', 'Social Media Links',
+    ],
     required: false,
   },
 ]
@@ -160,7 +295,6 @@ function useTypewriter(text, active, speed = 3) {
   return { displayed, done }
 }
 
-// Lovable logo — real SVG path from their brand
 function LovableLogo({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -174,7 +308,7 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
   const [step, setStep]                 = useState(0)
   const [answers, setAnswers]           = useState({})
   const [multiSelects, setMultiSelects] = useState({})
-  const [phase, setPhase]               = useState('questions') // questions | generating | result | error
+  const [phase, setPhase]               = useState('questions')
   const [generatedPrompt, setGeneratedPrompt] = useState('')
   const [fieldError, setFieldError]     = useState('')
   const [apiError, setApiError]         = useState('')
@@ -183,9 +317,13 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
   const inputRef                        = useRef(null)
   const resultRef                       = useRef(null)
 
-  const q = QUESTIONS[step]
-  const totalSteps = QUESTIONS.length
-  const progress = Math.round(((step) / totalSteps) * 100)
+  // Only show questions whose conditional (if any) passes
+  const activeQuestions = QUESTIONS.filter(q => !q.conditional || q.conditional(answers))
+
+  const q          = activeQuestions[step]
+  const totalSteps = activeQuestions.length
+  const progress   = Math.round((step / totalSteps) * 100)
+
   const loadingMsg = useLoadingMessage(phase === 'generating')
   const { displayed: typedPrompt, done: typingDone } = useTypewriter(generatedPrompt, phase === 'result')
 
@@ -224,12 +362,16 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
 
   function advanceWith(currentAnswers) {
     setFieldError('')
-    let merged = { ...currentAnswers }
+    const merged = { ...currentAnswers }
     if (q.type === 'multi') merged[q.id] = multiSelects[q.id] || []
-
     setAnswers(merged)
 
-    if (step < totalSteps - 1) {
+    // Re-evaluate active questions with the newly merged answers so the
+    // conditional pricing_amount question is counted correctly
+    const nextActive = QUESTIONS.filter(qq => !qq.conditional || qq.conditional(merged))
+    const isLast = step >= nextActive.length - 1
+
+    if (!isLast) {
       setStep(s => s + 1)
     } else {
       generate({ ...merged, [q.id]: q.type === 'multi' ? (multiSelects[q.id] || []) : (currentAnswers[q.id] || '') })
@@ -252,17 +394,29 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
     setPhase('generating')
     setApiError('')
 
+    const pricingDetails = finalAnswers.pricing_show === 'no_pricing'
+      ? 'No pricing shown — use a "Get a quote" CTA instead'
+      : `${finalAnswers.pricing_show === 'show_range' ? 'Price range' : 'Exact prices'} — starting from: ${finalAnswers.pricing_amount || 'not specified'}`
+
     const details = `
-What they are building: ${finalAnswers.building || 'Not specified'}
+Business description: ${finalAnswers.business || 'Not specified'}
 Brand name: ${finalAnswers.name || 'Not specified'}
-Target audience: ${finalAnswers.audience || 'Not specified'}
-Visual style: ${finalAnswers.style || 'Not specified'}
+Location: ${finalAnswers.location || 'Not specified'}
+Primary CTA: ${finalAnswers.cta_action || 'Not specified'}
+Biggest selling point: ${finalAnswers.selling_point || 'Not specified'}
+Pricing: ${pricingDetails}
+Ideal customer: ${finalAnswers.ideal_customer || 'Not specified'}
+Problem solved: ${finalAnswers.problem_solved || 'Not specified'}
+Brand voice: ${finalAnswers.voice || 'Not specified'}
+Brand inspiration: ${finalAnswers.brand_inspiration || 'None'}
 Primary color: ${finalAnswers.primary_color || 'Not specified'}
-Background color: ${finalAnswers.background_color || 'Not specified'}
-Mood / tone: ${finalAnswers.feeling || 'Not specified'}
-Pages to include: ${(finalAnswers.pages || []).join(', ') || 'Standard pages'}
-Special features: ${(finalAnswers.features || []).join(', ') || 'None'}
-Additional requests: ${finalAnswers.extra || 'None'}
+Background tone: ${finalAnswers.background_tone || 'Not specified'}
+Font personality: ${finalAnswers.font_personality || 'Not specified'}
+Services / products: ${finalAnswers.services || 'Not specified'}
+Real testimonial: ${finalAnswers.testimonial || 'None provided'}
+Contact details: ${finalAnswers.contact || 'Not specified'}
+Pages: ${(finalAnswers.pages || []).join(', ') || 'Standard pages'}
+Features: ${(finalAnswers.features || []).join(', ') || 'None'}
 `.trim()
 
     const systemPrompt = `You are a senior prompt engineer for AI website builders: Lovable, Bolt, v0, and Cursor.
@@ -286,29 +440,31 @@ ${details}
 Return only the personalised prompt.`
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-      if (!apiKey) throw new Error('VITE_GEMINI_API_KEY is not set in your .env file. Add it and redeploy.')
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY
+if (!apiKey) throw new Error('VITE_GROQ_API_KEY is not set in your .env file.')
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemPrompt }] }],
-            generationConfig: { temperature: 0.6, maxOutputTokens: 3000 },
-          }),
-        }
-      )
+const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+  },
+  body: JSON.stringify({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: systemPrompt }],
+    temperature: 0.6,
+    max_tokens: 3000,
+  }),
+})
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData?.error?.message || `Gemini API returned status ${res.status}`)
-      }
+if (!res.ok) {
+  const errData = await res.json().catch(() => ({}))
+  throw new Error(errData?.error?.message || `Groq API returned status ${res.status}`)
+}
 
-      const data = await res.json()
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-      if (!text) throw new Error('Gemini returned an empty response. Please try again.')
+const data = await res.json()
+const text = data.choices?.[0]?.message?.content
+if (!text) throw new Error('Groq returned an empty response. Please try again.')
 
       setGeneratedPrompt(text.trim())
       setPhase('result')
@@ -348,7 +504,7 @@ Return only the personalised prompt.`
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // ── Gate ──
+  // ── Gate ──────────────────────────────────────────────────────────────────
   if (!user) {
     return (
       <div className="pp-gate">
@@ -370,10 +526,11 @@ Return only the personalised prompt.`
     )
   }
 
+  // ── Main render ───────────────────────────────────────────────────────────
   return (
     <div className="pp-page">
 
-      {/* ── TOPBAR ── */}
+      {/* TOPBAR */}
       <div className="pp-topbar">
         <button className="pp-topbar-back" onClick={onBack}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -386,24 +543,21 @@ Return only the personalised prompt.`
         </div>
         <div className="pp-gemini-pill">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Powered by Gemini AI
+          Powered by Groq AI
         </div>
       </div>
 
-      {/* ── MAIN ── */}
       <div className="pp-main">
 
         {/* ── QUESTIONS PHASE ── */}
         {phase === 'questions' && (
           <>
-            {/* Hero */}
             <div className="pp-hero">
               <p className="pp-hero-eyebrow">Personalise this prompt</p>
               <h1 className="pp-hero-title">Make it yours</h1>
               <p className="pp-hero-sub">Answer a few questions and Gemini will rewrite this prompt with your brand, colors, and details injected.</p>
             </div>
 
-            {/* Progress */}
             <div className="pp-progress-wrap">
               <div className="pp-progress-bar">
                 <div className="pp-progress-fill" style={{ width: `${progress}%` }}/>
@@ -411,7 +565,6 @@ Return only the personalised prompt.`
               <span className="pp-progress-label">{step + 1} of {totalSteps}</span>
             </div>
 
-            {/* Question card */}
             <div className="pp-question-card">
               <div className="pp-q-meta">
                 <span className="pp-q-number">{(step + 1).toString().padStart(2, '0')}</span>
@@ -510,7 +663,7 @@ Return only the personalised prompt.`
               )}
             </div>
 
-            {/* Nav */}
+            {/* Nav — text and multi */}
             {q.type !== 'options' && q.type !== 'color-pick' && (
               <div className="pp-nav">
                 <button
@@ -532,7 +685,7 @@ Return only the personalised prompt.`
               </div>
             )}
 
-            {/* Back for option/color questions */}
+            {/* Nav — options and color-pick */}
             {(q.type === 'options' || q.type === 'color-pick') && step > 0 && (
               <div className="pp-nav pp-nav--option">
                 <button className="pp-nav-back" onClick={back}>
@@ -593,12 +746,9 @@ Return only the personalised prompt.`
               <p className="pp-result-desc">Your prompt has been rewritten with your brand details. Copy it and paste into your preferred AI builder.</p>
             </div>
 
-            {/* Prompt box */}
             <div className="pp-result-box">
               <div className="pp-result-box-header">
-                <div className="pp-result-box-dots">
-                  <span/><span/><span/>
-                </div>
+                <div className="pp-result-box-dots"><span/><span/><span/></div>
                 <span className="pp-result-box-filename">personalised-prompt.txt</span>
                 <span className="pp-result-box-words">{generatedPrompt.split(' ').length} words</span>
               </div>
@@ -610,31 +760,24 @@ Return only the personalised prompt.`
               </div>
             </div>
 
-            {/* Action buttons */}
             <div className="pp-result-actions">
-              {/* Copy */}
               <button className="pp-action-copy" onClick={handleCopy}>
                 {copied
                   ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Copied!</>
                   : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy prompt</>
                 }
               </button>
-
-              {/* Build with Lovable */}
               <button className="pp-action-lovable" onClick={openInLovable}>
                 <LovableLogo size={20}/>
                 Build with Lovable
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               </button>
-
-              {/* Download */}
               <button className="pp-action-download" onClick={handleDownload}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 {downloaded ? 'Downloaded' : 'Download .txt'}
               </button>
             </div>
 
-            {/* Start over */}
             <button className="pp-restart" onClick={restart}>Start over with different answers</button>
           </div>
         )}
