@@ -632,7 +632,7 @@ const [tutPlaying, setTutPlaying] = useState({})
 
         {/* ── HERO ── */}
         {!isSearching && (
-          <section className="hero-text-section" style={{ backgroundImage: 'url(/public/hero-image.jpg.jpg)' }}>
+          <section className="hero-text-section" style={{ backgroundImage: 'url(/hero-image.jpg.jpg)' }}>
             <div className="hero-overlay" />
             <div className="hero-text-inner">
               <div className="hero-left">
