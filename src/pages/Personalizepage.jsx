@@ -95,7 +95,7 @@ const QUESTIONS = [
     block: 3,
     blockLabel: 'Audience',
     label: 'Describe your ideal customer in one sentence',
-    hint: 'Gemini writes copy that speaks directly to this person',
+    hint: 'Grox writes copy that speaks directly to this person',
     type: 'text',
     placeholder: 'e.g. Working mothers aged 25–40 in Abuja who want healthy food delivered fast',
     required: false,
@@ -133,7 +133,7 @@ const QUESTIONS = [
     block: 4,
     blockLabel: 'Brand voice',
     label: 'Any brand or website you admire?',
-    hint: 'Gemini uses this as a reference for design language and copy style',
+    hint: 'Grox uses this as a reference for design language and copy style',
     type: 'text',
     placeholder: 'e.g. Apple, Paystack, Flutterwave, Zara',
     required: false,
@@ -208,7 +208,7 @@ const QUESTIONS = [
     block: 6,
     blockLabel: 'Real content',
     label: 'Do you have any real customer feedback to share?',
-    hint: 'One quote is enough — Gemini writes 3 testimonials in the same tone',
+    hint: 'One quote is enough — Groq writes 3 testimonials in the same tone',
     type: 'text',
     placeholder: '"Best jollof I\'ve ever ordered — delivered in 45 minutes!" — Tolu, Lekki',
     required: false,
@@ -314,6 +314,9 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
   const [apiError, setApiError]         = useState('')
   const [copied, setCopied]             = useState(false)
   const [downloaded, setDownloaded]     = useState(false)
+  const [purchaseId, setPurchaseId] = useState(null)
+  const [promptPreview, setPromptPreview] = useState('')
+  const [paymentDone, setPaymentDone] = useState(false)
   const inputRef                        = useRef(null)
   const resultRef                       = useRef(null)
 
@@ -391,88 +394,70 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
   }
 
   async function generate(finalAnswers) {
-    setPhase('generating')
-    setApiError('')
+  setPhase('generating')
+  setApiError('')
 
-    const pricingDetails = finalAnswers.pricing_show === 'no_pricing'
-      ? 'No pricing shown — use a "Get a quote" CTA instead'
-      : `${finalAnswers.pricing_show === 'show_range' ? 'Price range' : 'Exact prices'} — starting from: ${finalAnswers.pricing_amount || 'not specified'}`
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Not signed in')
 
-    const details = `
-Business description: ${finalAnswers.business || 'Not specified'}
-Brand name: ${finalAnswers.name || 'Not specified'}
-Location: ${finalAnswers.location || 'Not specified'}
-Primary CTA: ${finalAnswers.cta_action || 'Not specified'}
-Biggest selling point: ${finalAnswers.selling_point || 'Not specified'}
-Pricing: ${pricingDetails}
-Ideal customer: ${finalAnswers.ideal_customer || 'Not specified'}
-Problem solved: ${finalAnswers.problem_solved || 'Not specified'}
-Brand voice: ${finalAnswers.voice || 'Not specified'}
-Brand inspiration: ${finalAnswers.brand_inspiration || 'None'}
-Primary color: ${finalAnswers.primary_color || 'Not specified'}
-Background tone: ${finalAnswers.background_tone || 'Not specified'}
-Font personality: ${finalAnswers.font_personality || 'Not specified'}
-Services / products: ${finalAnswers.services || 'Not specified'}
-Real testimonial: ${finalAnswers.testimonial || 'None provided'}
-Contact details: ${finalAnswers.contact || 'Not specified'}
-Pages: ${(finalAnswers.pages || []).join(', ') || 'Standard pages'}
-Features: ${(finalAnswers.features || []).join(', ') || 'None'}
-`.trim()
+    const { data: siteData } = await supabase
+      .from('sites')
+      .select('prompt')
+      .eq('id', site.id)
+      .single()
 
-    const systemPrompt = `You are a senior prompt engineer for AI website builders: Lovable, Bolt, v0, and Cursor.
+    if (!siteData?.prompt) throw new Error('Original prompt not found')
 
-Your task is to personalise the original website prompt below using the user's business details. Follow these rules strictly:
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-prompt`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          answers: finalAnswers,
+          site_id: site.id,
+          original_prompt: siteData.prompt,
+        }),
+      }
+    )
 
-1. Keep the original prompt's technical structure, component hierarchy, and design system completely intact.
-2. Only replace or inject personal details: business name, industry description, target audience, color scheme, pages, and features.
-3. Where the original mentions generic placeholder names, industries, or example text — replace them with the user's specifics.
-4. If the user requested pages or features not in the original, add them naturally at the end of the prompt.
-5. Do not rewrite, shorten, or reduce the technical depth of the original.
-6. Do not add any preamble, explanation, or markdown. Return only the final prompt text.
-7. Do not use emojis.
+    const result = await res.json()
+    if (!res.ok) throw new Error(result.error || 'Generation failed')
 
-ORIGINAL PROMPT:
-${site.prompt}
+    setPurchaseId(result.purchase_id)
+    setPromptPreview(result.preview)
 
-USER DETAILS:
-${details}
-
-Return only the personalised prompt.`
-
-    try {
-      const apiKey = import.meta.env.VITE_GROQ_API_KEY
-if (!apiKey) throw new Error('VITE_GROQ_API_KEY is not set in your .env file.')
-
-const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
-  },
-  body: JSON.stringify({
-    model: 'llama-3.3-70b-versatile',
-    messages: [{ role: 'user', content: systemPrompt }],
-    temperature: 0.6,
-    max_tokens: 3000,
-  }),
-})
-
-if (!res.ok) {
-  const errData = await res.json().catch(() => ({}))
-  throw new Error(errData?.error?.message || `Groq API returned status ${res.status}`)
+    if (result.already_paid) {
+      // fetch full prompt and go straight to result
+      await fetchFullPurchasedPrompt(result.purchase_id)
+    } else {
+      setPhase('payment')
+    }
+  } catch (err) {
+    setApiError(err.message)
+    setPhase('error')
+  }
 }
 
-const data = await res.json()
-const text = data.choices?.[0]?.message?.content
-if (!text) throw new Error('Groq returned an empty response. Please try again.')
+async function fetchFullPurchasedPrompt(id) {
+  const { data } = await supabase
+    .from('prompt_purchases')
+    .select('generated_prompt, paid')
+    .eq('id', id)
+    .single()
 
-      setGeneratedPrompt(text.trim())
-      setPhase('result')
-    } catch (err) {
-      setApiError(err.message || 'Generation failed. Please check your API key and try again.')
-      setPhase('error')
-    }
+  if (data?.paid && data?.generated_prompt) {
+    setGeneratedPrompt(data.generated_prompt)
+    setPhase('result')
+  } else {
+    setApiError('Payment not confirmed yet. Please wait a moment and try again.')
+    setPhase('error')
   }
+}
 
   function handleCopy() {
     navigator.clipboard.writeText(generatedPrompt)
@@ -503,6 +488,37 @@ if (!text) throw new Error('Groq returned an empty response. Please try again.')
     setFieldError(''); setApiError('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  function handlePayment() {
+  if (!user?.email) { onSignIn(); return }
+  const handler = window.PaystackPop.setup({
+    key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+    email: user.email,
+    amount: 399900,
+    currency: 'NGN',
+    ref: `pp_${site.id}_${user.id}_${Date.now()}`,
+    metadata: {
+      purchase_id: purchaseId,
+      site_id: site.id,
+      user_id: user.id,
+    },
+    callback: async function() {
+      // Poll for webhook confirmation
+      let attempts = 0
+      const poll = setInterval(async () => {
+        attempts++
+        await fetchFullPurchasedPrompt(purchaseId)
+        if (attempts > 10) {
+          clearInterval(poll)
+          setApiError('Payment received but confirmation is taking longer than expected. Please refresh the page.')
+          setPhase('error')
+        }
+      }, 2000)
+    },
+    onClose: function() {}
+  })
+  handler.openIframe()
+}
 
   // ── Gate ──────────────────────────────────────────────────────────────────
   if (!user) {
@@ -555,7 +571,7 @@ if (!text) throw new Error('Groq returned an empty response. Please try again.')
             <div className="pp-hero">
               <p className="pp-hero-eyebrow">Personalise this prompt</p>
               <h1 className="pp-hero-title">Make it yours</h1>
-              <p className="pp-hero-sub">Answer a few questions and Gemini will rewrite this prompt with your brand, colors, and details injected.</p>
+              <p className="pp-hero-sub">Answer a few questions and Groq will rewrite this prompt with your brand, colors, and details injected.</p>
             </div>
 
             <div className="pp-progress-wrap">
@@ -725,7 +741,7 @@ if (!text) throw new Error('Groq returned an empty response. Please try again.')
               </div>
               <div className="pp-gen-step pp-gen-step--active">
                 <span className="pp-gen-dot"/>
-                Gemini processing
+                Groq processing
               </div>
               <div className="pp-gen-step pp-gen-step--pending">
                 <span className="pp-gen-dot pp-gen-dot--off"/>
@@ -750,7 +766,7 @@ if (!text) throw new Error('Groq returned an empty response. Please try again.')
               <div className="pp-result-box-header">
                 <div className="pp-result-box-dots"><span/><span/><span/></div>
                 <span className="pp-result-box-filename">personalised-prompt.txt</span>
-                <span className="pp-result-box-words">{generatedPrompt.split(' ').length} words</span>
+                <span className="pp-result-box-words">~ 800 words</span>
               </div>
               <div className="pp-result-box-body">
                 <pre className="pp-result-text">
@@ -781,7 +797,67 @@ if (!text) throw new Error('Groq returned an empty response. Please try again.')
             <button className="pp-restart" onClick={restart}>Start over with different answers</button>
           </div>
         )}
+         {/* ── PAYMENT PHASE ── */}
+{phase === 'payment' && (
+  <div className="pp-payment">
+    <div className="pp-payment-badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      Your prompt is ready
+    </div>
 
+    <h2 className="pp-payment-title">Unlock your personalised prompt</h2>
+    <p className="pp-payment-sub">
+      Groq has rewritten the prompt with your brand details. Pay once to unlock and download it.
+    </p>
+
+    {/* Blurred prompt preview */}
+    <div className="pp-payment-preview">
+      <div className="pp-payment-preview-header">
+        <div className="pp-result-box-dots"><span/><span/><span/></div>
+        <span style={{ fontFamily: 'var(--pp-fm)', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+          personalised-prompt.txt
+        </span>
+        <span style={{ fontFamily: 'var(--pp-fm)', fontSize: 10.5, color: 'rgba(255,255,255,0.15)' }}>
+          ~ 800 words
+        </span>
+      </div>
+      <div className="pp-payment-preview-body">
+        <pre className="pp-payment-preview-text">
+          {promptPreview}...
+        </pre>
+        <div className="pp-payment-blur-overlay"/>
+      </div>
+    </div>
+
+    {/* What they get */}
+    <div className="pp-payment-perks">
+      {[
+        'Full personalised prompt — ready to paste into Lovable or Bolt',
+        'Download as .txt file',
+        'Use it unlimited times',
+        'Based on your ' + Object.keys(answers).filter(k => answers[k]).length + ' answers',
+      ].map((perk, i) => (
+        <div key={i} className="pp-payment-perk">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          {perk}
+        </div>
+      ))}
+    </div>
+
+    {/* Pay button */}
+    <div className="pp-payment-pricing">
+  <span className="pp-payment-original">₦10,000</span>
+  <span className="pp-payment-price">₦3,999</span>
+  <span className="pp-payment-founder">Founder offer</span>
+</div>
+<button className="pp-payment-btn" onClick={handlePayment}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Pay ₦3,999 to unlock your prompt
+    </button>
+
+    <button className="pp-restart" onClick={restart}>Start over instead</button>
+  </div>
+)}
         {/* ── ERROR PHASE ── */}
         {phase === 'error' && (
           <div className="pp-error-state">

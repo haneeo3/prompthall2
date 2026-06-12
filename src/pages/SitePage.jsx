@@ -286,7 +286,7 @@ async function fetchFullPrompt() {
 
   const { data } = await supabase
 
-    .from('sites').select('prompt').eq('id', site.id).single()
+    .from('sites').select('id,url,title,description,screenshot_url,prompt,tool,tags,author_id,author_name,approved,created_at,github_url,tech_stack,color_reason,font_style,layout_style,category,prompt_preview,ratings(rating)').eq('id', site.id).single()
 
   if (data?.prompt) setUnlockedPrompt(data.prompt)
 
