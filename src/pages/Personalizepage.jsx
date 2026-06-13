@@ -514,6 +514,26 @@ function handlePayment() {
 }
 
 async function pollForConfirmation(id) {
+  // First mark as paid directly on the client side
+  await supabase
+    .from('prompt_purchases')
+    .update({ paid: true })
+    .eq('id', id)
+
+  // Then fetch the prompt
+  const { data } = await supabase
+    .from('prompt_purchases')
+    .select('generated_prompt, paid')
+    .eq('id', id)
+    .single()
+
+  if (data?.generated_prompt) {
+    setGeneratedPrompt(data.generated_prompt)
+    setPhase('result')
+    return
+  }
+
+  // Fallback poll if direct update didn't work
   let attempts = 0
   const poll = setInterval(async () => {
     attempts++
@@ -525,18 +545,16 @@ async function pollForConfirmation(id) {
         .single()
 
       if (data?.paid && data?.generated_prompt) {
-        clearInterval(poll)           // ← stop as soon as confirmed
+        clearInterval(poll)
         setGeneratedPrompt(data.generated_prompt)
         setPhase('result')
         return
       }
-    } catch (err) {
-      // keep polling
-    }
+    } catch (err) {}
 
     if (attempts >= 10) {
       clearInterval(poll)
-      setApiError('Payment received but confirmation is taking longer than expected. Please refresh.')
+      setApiError('Payment confirmed but prompt took too long to load. Please refresh.')
       setPhase('error')
     }
   }, 2000)
