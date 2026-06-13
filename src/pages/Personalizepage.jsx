@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { supabase } from '../supabase'
 import './Personalizepage.css'
 
 const QUESTIONS = [
@@ -489,12 +490,13 @@ async function fetchFullPurchasedPrompt(id) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function handlePayment() {
+function handlePayment() {
   if (!user?.email) { onSignIn(); return }
+
   const handler = window.PaystackPop.setup({
     key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
     email: user.email,
-    amount: 399900,
+    amount: 10000,
     currency: 'NGN',
     ref: `pp_${site.id}_${user.id}_${Date.now()}`,
     metadata: {
@@ -502,22 +504,42 @@ async function fetchFullPurchasedPrompt(id) {
       site_id: site.id,
       user_id: user.id,
     },
-    callback: async function() {
-      // Poll for webhook confirmation
-      let attempts = 0
-      const poll = setInterval(async () => {
-        attempts++
-        await fetchFullPurchasedPrompt(purchaseId)
-        if (attempts > 10) {
-          clearInterval(poll)
-          setApiError('Payment received but confirmation is taking longer than expected. Please refresh the page.')
-          setPhase('error')
-        }
-      }, 2000)
+    callback: function(response) {
+      pollForConfirmation(purchaseId)
     },
-    onClose: function() {}
+    onClose: function() {},
   })
+
   handler.openIframe()
+}
+
+async function pollForConfirmation(id) {
+  let attempts = 0
+  const poll = setInterval(async () => {
+    attempts++
+    try {
+      const { data } = await supabase
+        .from('prompt_purchases')
+        .select('generated_prompt, paid')
+        .eq('id', id)
+        .single()
+
+      if (data?.paid && data?.generated_prompt) {
+        clearInterval(poll)           // ← stop as soon as confirmed
+        setGeneratedPrompt(data.generated_prompt)
+        setPhase('result')
+        return
+      }
+    } catch (err) {
+      // keep polling
+    }
+
+    if (attempts >= 10) {
+      clearInterval(poll)
+      setApiError('Payment received but confirmation is taking longer than expected. Please refresh.')
+      setPhase('error')
+    }
+  }, 2000)
 }
 
   // ── Gate ──────────────────────────────────────────────────────────────────
