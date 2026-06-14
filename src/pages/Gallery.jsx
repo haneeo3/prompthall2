@@ -227,7 +227,7 @@ const COLOR_OF_DAY = ALL_COLORS[getDayIndex(ALL_COLORS.length)]
 const TUTORIALS = [
   { id: 1, title: 'How to Vibe Code Your First Website from Scratch', desc: 'A complete walkthrough — from prompt to deployed site in under an hour.', videoId: 'OVucTZZsiQI' },
   { id: 2, title: 'Prompt Engineering for Better UI: Colors, Layout & Typography', desc: 'Learn exactly how to describe your design to get premium-looking results every time.', videoId: 'htiaUaOoEH0' },
-  { id: 3, title: 'Best AI Website Builder 2026 (My TOP Recommendation)', desc: 'I tested the best AI website builders of 2026 to see which ones actually make it faster and easier to launch a great-looking site.', videoId: '85HgbG2dRAg' },
+  { id: 3, title: 'I Used AI Prompts from Prompthall to Build & Publish on Lovable in Minutes', desc: 'In this video, I show how you can take powerful, real-world prompts from Prompthall and use them to quickly build and publish projects on Lovable.', videoId: '2ei6BTr5yrg' },
 ]
 
 const SUGGESTIONS = ['saas', 'dashboard', 'portfolio', 'landing page', 'e-commerce', 'ai tool', 'marketplace', 'blog', 'booking', 'cursor', 'bolt', 'v0', 'react', 'next.js', 'tailwind', 'dark mode', 'minimal', 'startup']
