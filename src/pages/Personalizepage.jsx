@@ -496,7 +496,7 @@ function handlePayment() {
   const handler = window.PaystackPop.setup({
     key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
     email: user.email,
-    amount: 10000,
+    amount: 399900,
     currency: 'NGN',
     ref: `pp_${site.id}_${user.id}_${Date.now()}`,
     metadata: {
