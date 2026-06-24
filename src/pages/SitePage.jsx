@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
 import { useNavigate } from 'react-router-dom'
-import UpgradeModal from '../components/UpgradeModal'
 import './SitePage.css'
 
 const TOOL_LABELS = {
@@ -104,9 +103,9 @@ export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [unlockedPrompt, setUnlockedPrompt] = useState(null)
 const [unlockLoading, setUnlockLoading]   = useState(false)
-const [dailyCount, setDailyCount]         = useState(0)
-const [isPro, setIsPro]                   = useState(false)
-const [countChecked, setCountChecked]     = useState(false)
+const [hasAccess, setHasAccess]           = useState(false)
+const [accessChecked, setAccessChecked]   = useState(false)
+const [showPaywall, setShowPaywall]       = useState(false)
   const commentInputRef = useRef(null)
   const navigate = useNavigate()
 
@@ -157,38 +156,18 @@ const [countChecked, setCountChecked]     = useState(false)
 
   // 3. SECOND PASTED HOOK (User Subscription & Unlock Limits Check)
   useEffect(() => {
-    if (!user) { 
-      setCountChecked(true); 
-      return; 
-    }
-    
-    async function checkCount() {
-      const { data: sub } = await supabase
-        .from('subscriptions').select('status')
-        .eq('user_id', user.id).eq('status', 'active').maybeSingle()
-        
-      if (sub) { 
-        setIsPro(true); 
-        setCountChecked(true); 
-        return; 
-      }
-
-      const startOfDay = new Date(); 
-      startOfDay.setHours(0,0,0,0)
-      
-      const { count } = await supabase
-        .from('prompt_unlocks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('unlocked_at', startOfDay.toISOString())
-        
-      setDailyCount(count || 0)
-      setCountChecked(true)
-    }
-    
-    checkCount()
-  }, [user])
-
+  if (!user) { setAccessChecked(true); return }
+  async function checkAccess() {
+    const { data } = await supabase
+      .from('prompt_access')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    setHasAccess(!!data)
+    setAccessChecked(true)
+  }
+  checkAccess()
+}, [user])
 
   // 4. THIS LINE MUST BE DIRECTLY BELOW THE FIX:
   if (!site) return null
@@ -249,47 +228,56 @@ const [countChecked, setCountChecked]     = useState(false)
   }
 
   async function handleUnlock() {
-
   if (!user) { onSignIn(); return }
-
-  if (isPro) {
-
-    await fetchFullPrompt(); return
-
+  if (hasAccess) {
+    await fetchFullPrompt()
+    return
   }
+  setShowPaywall(true)
+}
 
-  if (dailyCount >= 2) { setLimitReached(true); return }
+async function handlePayForAccess() {
+  if (!user?.email) { onSignIn(); return }
+  const handler = window.PaystackPop.setup({
+    key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+    email: user.email,
+    amount: 399900,
+    currency: 'NGN',
+    ref: `access_${user.id}_${Date.now()}`,
+    metadata: { user_id: user.id, product: 'prompt_access' },
+    callback: async function(response) {
+      try {
+        await supabase.from('prompt_access').insert({
+          user_id: user.id,
+          reference: response.reference,
+        })
+        setHasAccess(true)
+        setShowPaywall(false)
+        await fetchFullPrompt()
+      } catch (err) {
+        alert('Payment confirmed but something went wrong. Please refresh and try again.')
+      }
+    },
+    onClose: function() {}
+  })
+  handler.openIframe()
+}
 
-  setUnlockLoading(true)
-
-  await fetchFullPrompt()
-
-  const { data: existing } = await supabase
-
-    .from('prompt_unlocks').select('id')
-
-    .eq('user_id', user.id).eq('site_id', site.id).maybeSingle()
-
-  if (!existing) {
-
-    await supabase.from('prompt_unlocks').insert({ user_id: user.id, site_id: site.id })
-
-  }
-
-  setDailyCount(c => c + 1)
-
-  setUnlockLoading(false)
-
+async function handleCopyPrompt() {
+  if (!user) { onSignIn(); return }
+  if (!unlockedPrompt) { await fetchFullPrompt() }
+  navigator.clipboard.writeText(unlockedPrompt || '')
+  setCopied(true)
+  setTimeout(() => setCopied(false), 2200)
 }
 
 async function fetchFullPrompt() {
-
   const { data } = await supabase
-
-    .from('sites').select('id,url,title,description,screenshot_url,prompt,tool,tags,author_id,author_name,approved,created_at,github_url,tech_stack,color_reason,font_style,layout_style,category,prompt_preview,ratings(rating)').eq('id', site.id).single()
-
+    .from('sites')
+    .select('prompt')
+    .eq('id', site.id)
+    .single()
   if (data?.prompt) setUnlockedPrompt(data.prompt)
-
 }
   function handleCopyLink() {
     navigator.clipboard.writeText(window.location.href)
@@ -474,25 +462,24 @@ async function fetchFullPrompt() {
               <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
             </svg>
           </div>
-          {countChecked && dailyCount < 2 ? (
-            <>
-              <p className="sp-blur-title">Unlock this prompt</p>
-              <p className="sp-blur-sub">{2 - dailyCount} of 2 free unlocks remaining today</p>
-              <button className="sp-blur-btn" onClick={handleUnlock} disabled={unlockLoading}>
-                {unlockLoading ? 'Unlocking...' : 'Unlock prompt →'}
-              </button>
-            </>
-          ) : countChecked && dailyCount >= 2 ? (
-            <>
-              <p className="sp-blur-title">Daily limit reached</p>
-              <p className="sp-blur-sub">You've used your 2 free unlocks today</p>
-              <button className="sp-blur-btn sp-blur-btn--upgrade" onClick={() => setShowUpgrade(true)}>
-                Upgrade to Pro — unlimited access
-              </button>
-            </>
-          ) : (
-            <p className="sp-blur-sub">Checking access...</p>
-          )}
+          {!accessChecked ? (
+  <p className="sp-blur-sub">Checking access...</p>
+) : hasAccess ? (
+  <>
+    <p className="sp-blur-title">You have full access</p>
+    <button className="sp-blur-btn" onClick={handleUnlock} disabled={unlockLoading}>
+      {unlockLoading ? 'Loading...' : 'View prompt →'}
+    </button>
+  </>
+) : (
+  <>
+    <p className="sp-blur-title">Unlock all prompts</p>
+    <p className="sp-blur-sub">Pay once. Access every prompt in the gallery forever.</p>
+    <button className="sp-blur-btn" onClick={handleUnlock}>
+      Unlock for ₦3,999 →
+    </button>
+  </>
+)} 
         </div>
       </div>
     </div>
@@ -764,9 +751,51 @@ async function fetchFullPrompt() {
         </div>
       )}
 
-      {showUpgrade && (
-        <UpgradeModal user={user} onClose={() => setShowUpgrade(false)} onSuccess={() => setShowUpgrade(false)} />
-      )}
+      {showPaywall && (
+  <div className="limit-backdrop" onClick={() => setShowPaywall(false)}>
+    <div className="limit-modal" onClick={e => e.stopPropagation()}>
+      <div className="upgrade-illustration">
+        <svg width="100" height="100" viewBox="0 0 120 120" fill="none">
+          <circle cx="60" cy="60" r="56" fill="#EEF3FF"/>
+          <path d="M60 28C60 28 45 45 45 65L60 72L75 65C75 45 60 28 60 28Z" fill="#1A6BFF"/>
+          <path d="M60 28C60 28 52 38 52 45L60 42L68 45C68 38 60 28 60 28Z" fill="#0A3FCC"/>
+          <circle cx="60" cy="54" r="6" fill="white" opacity="0.9"/>
+          <circle cx="60" cy="54" r="2" fill="#1A6BFF" opacity="0.6"/>
+          <path d="M45 65L38 78L52 70Z" fill="#0A3FCC"/>
+          <path d="M75 65L82 78L68 70Z" fill="#0A3FCC"/>
+          <ellipse cx="60" cy="73" rx="6" ry="4" fill="#FFD166"/>
+        </svg>
+      </div>
+      <h2>Unlock all prompts</h2>
+      <p>Pay once and access every prompt in the gallery forever. No daily limits. No subscriptions.</p>
+      <div style={{ background: '#F8F9FB', border: '1.5px solid #E5E7EB', borderRadius: 12, padding: '16px 20px', margin: '16px 0', textAlign: 'left' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>Full Gallery Access</span>
+          <span style={{ background: 'linear-gradient(135deg,#FF6B35,#FFD166)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>FOUNDER OFFER</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ fontSize: 28, fontWeight: 800, color: '#0A0A0A' }}>₦3,999</span>
+          <span style={{ fontSize: 14, color: 'rgba(0,0,0,0.3)', textDecoration: 'line-through' }}>₦10,000</span>
+        </div>
+        <p style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)', margin: '4px 0 0' }}>One-time payment. All 104+ prompts unlocked forever.</p>
+      </div>
+      <div style={{ textAlign: 'left', marginBottom: 20 }}>
+        {['Access all 104+ prompts instantly', 'No daily limits ever again', 'Copy and use any prompt unlimited times', 'New prompts added automatically'].map((f, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.7)' }}>{f}</span>
+          </div>
+        ))}
+      </div>
+      <button className="limit-btn-pro" onClick={handlePayForAccess}>
+        Pay ₦3,999 — unlock everything →
+      </button>
+      <button className="limit-btn-ghost" onClick={() => setShowPaywall(false)}>
+        Maybe later
+      </button>
+    </div>
+  </div>
+)}
     </div>
   )
 }

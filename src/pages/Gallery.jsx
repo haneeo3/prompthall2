@@ -506,7 +506,7 @@ const [tutPlaying, setTutPlaying] = useState({})
     .single()
 
   if (sub) {
-    handleCopyPrompt(site)
+    navigator.clipboard.writeText(site.prompt)
     setCopiedId(site.id)
     setTimeout(() => setCopiedId(null), 2000)
     return
@@ -1117,7 +1117,9 @@ const [tutPlaying, setTutPlaying] = useState({})
 </div>
       <h2>Daily limit reached</h2>
       <p>Free accounts can unlock 2 prompts per day. Upgrade to Pro for unlimited access and AI prompt customization.</p>
-      <button className="limit-btn-pro" onClick={() => { setLimitReached(false); setShowUpgrade(true) }}>Upgrade to Pro →</button>
+      <button className="limit-btn-pro" onClick={() => { setLimitReached(false); window.location.href = '/gallery' }}>
+  One-Time Investment. Lifetime Mastery.
+</button>
       <button className="limit-btn-ghost" onClick={() => setLimitReached(false)}>Maybe later</button>
     </div>
   </div>

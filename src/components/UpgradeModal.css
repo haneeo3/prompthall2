@@ -178,3 +178,34 @@
 .upgrade-illustration svg {
   filter: drop-shadow(0 8px 24px rgba(26, 107, 255, 0.2));
 }
+
+.upgrade-founder-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #FF6B35, #FFD166);
+  padding: 8px 16px;
+  border-radius: 99px;
+  width: fit-content;
+  margin: 0 auto 16px;
+  letter-spacing: 0.03em;
+}
+
+.price-original {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 16px;
+  color: rgba(0,0,0,0.3);
+  text-decoration: line-through;
+  margin-right: 6px;
+}
+
+.price-billed {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 12px;
+  color: rgba(0,0,0,0.4);
+  margin-top: 4px;
+}
