@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import './UpgradeModal.css'
 
 const PAYSTACK_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY
+const MONTHLY_PLAN = import.meta.env.VITE_PAYSTACK_PLAN_MONTHLY
+const YEARLY_PLAN = import.meta.env.VITE_PAYSTACK_PLAN_YEARLY
 
 export default function UpgradeModal({ user, onClose, onSuccess }) {
   const [billing, setBilling] = useState('monthly')
@@ -16,12 +18,11 @@ export default function UpgradeModal({ user, onClose, onSuccess }) {
     if (!user) return
     setLoading(true)
 
-    const amount = billing === 'monthly' ? 1199900 : 9999900
 
     const handler = window.PaystackPop.setup({
       key: PAYSTACK_KEY,
       email: user.email,
-      amount,
+      plan: billing === 'monthly' ? MONTHLY_PLAN : YEARLY_PLAN,
       currency: 'NGN',
       ref: `pro_${billing}_${user.id}_${Date.now()}`,
       metadata: {

@@ -433,10 +433,27 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
     setPromptPreview(result.preview)
 
     if (result.already_paid) {
-      // fetch full prompt and go straight to result
       await fetchFullPurchasedPrompt(result.purchase_id)
     } else {
-      setPhase('payment')
+      // Check if user is Pro — skip payment if they are
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (sub) {
+        // Pro user — mark as paid and show result directly
+        await supabase
+          .from('prompt_purchases')
+          .update({ paid: true })
+          .eq('id', result.purchase_id)
+
+        await fetchFullPurchasedPrompt(result.purchase_id)
+      } else {
+        setPhase('payment')
+      }
     }
   } catch (err) {
     setApiError(err.message)
