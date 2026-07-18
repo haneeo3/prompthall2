@@ -8,6 +8,7 @@ import AuthPage from './pages/AuthPage'
 import NotFound from './pages/NotFound'
 import AdminPage from './pages/AdminPage'
 import PersonalizePage from './pages/PersonalizePage'
+import Dashboard from './pages/Dashboard'
 import './index.css'
 
 function AppRoutes() {
@@ -73,7 +74,10 @@ function AppRoutes() {
       <Route path="/auth" element={
         <AuthPage onBack={() => navigate('/')} onSuccess={() => navigate('/')} />
       } />
-
+ <Route path="/dashboard" element={
+        <Dashboard user={user} onSignIn={() => navigate('/auth')} onBack={() => navigate('/')} />
+      } />
+      
       <Route path="/admin" element={
         <AdminPage user={user} isAdmin={isAdmin} onBack={() => navigate('/')} />
       } />

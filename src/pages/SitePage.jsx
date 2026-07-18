@@ -82,6 +82,38 @@ function Avatar({ name, size = 38, bg = null }) {
   )
 }
 
+function BookmarkBtn({ siteId, userId }) {
+  const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return }
+    supabase.from('bookmarks').select('id')
+      .eq('user_id', userId).eq('site_id', siteId).maybeSingle()
+      .then(({ data }) => { setSaved(!!data); setLoading(false) })
+  }, [userId, siteId])
+
+  async function toggle() {
+    if (!userId) return
+    if (saved) {
+      await supabase.from('bookmarks').delete().eq('user_id', userId).eq('site_id', siteId)
+      setSaved(false)
+    } else {
+      await supabase.from('bookmarks').insert({ user_id: userId, site_id: siteId })
+      setSaved(true)
+    }
+  }
+
+  if (loading) return null
+
+  return (
+    <button className={`sp-bookmark-btn ${saved ? 'sp-bookmark-btn--saved' : ''}`} onClick={toggle} title={saved ? 'Remove bookmark' : 'Save prompt'}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+      {saved ? 'Saved' : 'Save'}
+    </button>
+  )
+}
+
 export default function SitePage({ site, onBack, user, onSignIn }) {  const [copied, setCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [limitReached, setLimitReached] = useState(false)
@@ -410,6 +442,8 @@ async function fetchFullPrompt() {
               </div>
             </div>
           )}
+
+
 {/* ── PROMPT ── */}
 <div className="sp-prompt-section">
   <div className="sp-prompt-header">
@@ -418,6 +452,7 @@ async function fetchFullPrompt() {
       <p className="sp-prompt-sublabel">The exact prompt used to generate this site</p>
     </div>
     <div className="sp-prompt-btns">
+      <BookmarkBtn siteId={site.id} userId={user?.id} />
       {unlockedPrompt && (
         <button className="sp-prompt-copy-btn" onClick={handleCopyPrompt}>
           {copied ? '✓ Copied' : 'Copy prompt'}
@@ -425,15 +460,13 @@ async function fetchFullPrompt() {
       )}
       {unlockedPrompt && (
         <button className="sp-prompt-personalise-btn"
-          onClick={() => user ? navigate(`/site/personalise/${site.id}`) : onSignIn()}>
+          onClick={() => user ? navigate(`/personalise/${site.id}`) : onSignIn()}>
           Personalise →
         </button>
       )}
     </div>
   </div>
-
-  {!user ? (
-    <div className="sp-prompt-gate">
+  {!user ? (   <div className="sp-prompt-gate">
       <div className="sp-gate-icon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
@@ -770,5 +803,6 @@ async function fetchFullPrompt() {
       )}
       
     </div>
+      
   )
 }

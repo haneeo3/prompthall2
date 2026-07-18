@@ -582,7 +582,7 @@ const [tutPlaying, setTutPlaying] = useState({})
           </a>
           {user ? (
   <>
-    <div className="nav-avatar" title={user.user_metadata?.full_name || user.email}>
+    <div className="nav-avatar" title={user.user_metadata?.full_name || user.email} onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
       {(user.user_metadata?.full_name || user.email || 'U')
         .split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
     </div>

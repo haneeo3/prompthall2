@@ -2493,3 +2493,26 @@
   background: linear-gradient(135deg, #0A5BEF, #6C2ADD);
   color: #fff;
 }
+.sp-bookmark-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1.5px solid #E5E7EB;
+  background: #fff;
+  color: rgba(0,0,0,0.5);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+}
+
+.sp-bookmark-btn:hover { border-color: #1A6BFF; color: #1A6BFF; }
+
+.sp-bookmark-btn--saved {
+  background: #EEF3FF;
+  border-color: #1A6BFF;
+  color: #1A6BFF;
+}
