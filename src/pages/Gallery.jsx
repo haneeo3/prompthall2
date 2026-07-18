@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
-import UpgradeModal from '../components/UpgradeModal'
 import FilterBar from '../components/FilterBar'
 import GalleryCard from '../components/GalleryCard'
 import './Gallery.css'

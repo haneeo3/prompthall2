@@ -2,257 +2,234 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
 import './Personalizepage.css'
 
-const QUESTIONS = [
-
-  // ── BLOCK 1: FOUNDATION ──────────────────────────────────────────────────
+const PAGES = [
   {
-    id: 'business',
-    block: 1,
-    blockLabel: 'Foundation',
-    label: 'What is your business and what does it do?',
-    hint: 'One sentence — this becomes the brief for the whole site',
-    type: 'text',
-    placeholder: 'e.g. We make and deliver fresh, healthy meals to busy families in Lagos',
-    required: true,
+    page: 1,
+    label: 'Foundation',
+    questions: [
+      {
+        id: 'business',
+        label: 'What is your business and what does it do?',
+        hint: 'One sentence — AI will use this to categorize your niche and recommend everything else',
+        type: 'text',
+        placeholder: 'e.g. We make and deliver fresh healthy meals to busy families in Lagos',
+        required: true,
+      },
+      {
+        id: 'name',
+        label: 'What is your brand name?',
+        hint: 'Injected into every headline, footer, and meta tag',
+        type: 'text',
+        placeholder: 'e.g. Bella Studio',
+        required: true,
+      },
+      {
+        id: 'location',
+        label: 'Where are you based?',
+        hint: 'Localises copy — "Lagos delivery" vs "London delivery"',
+        type: 'location',
+        placeholder: 'Search city...',
+        required: true,
+      },
+      {
+        id: 'whatsapp',
+        label: 'WhatsApp number',
+        hint: 'Used for CTA buttons and contact section',
+        type: 'phone',
+        placeholder: '801 234 5678',
+        required: false,
+      },
+      {
+        id: 'email',
+        label: 'Business email',
+        hint: 'Goes in the footer and contact section',
+        type: 'email',
+        placeholder: 'hello',
+        required: false,
+      },
+    ]
   },
   {
-    id: 'name',
-    block: 1,
-    blockLabel: 'Foundation',
-    label: 'What is your brand name?',
-    hint: 'This gets injected into every headline, footer, and meta tag',
-    type: 'text',
-    placeholder: 'e.g. Bella Studio',
-    required: true,
+    page: 2,
+    label: 'Conversion',
+    questions: [
+      {
+        id: 'cta_action',
+        label: 'What is the ONE action you want visitors to take?',
+        hint: 'AI will suggest the best option based on your business type',
+        type: 'options',
+        aiSuggest: true,
+        options: [
+          { label: 'Book a call', value: 'Book a call — use a calendar booking CTA throughout' },
+          { label: 'Buy a product', value: 'Buy a product — use shop / add to cart CTAs throughout' },
+          { label: 'Send a WhatsApp', value: 'Send a WhatsApp message — all CTAs open a WhatsApp chat link' },
+          { label: 'Sign up', value: 'Sign up — use email signup / account creation CTAs throughout' },
+          { label: 'Get a quote', value: 'Get a quote — use a quote request form as the primary CTA' },
+          { label: 'Visit the store', value: 'Visit the physical store — CTAs show address and directions' },
+        ],
+        required: true,
+      },
+      {
+        id: 'pricing_show',
+        label: 'Do you want to show pricing on the site?',
+        hint: 'Controls whether a pricing section is generated',
+        type: 'options',
+        options: [
+          { label: 'Yes — price range', value: 'show_range' },
+          { label: 'Yes — exact prices', value: 'show_exact' },
+          { label: 'No — "Get a quote"', value: 'no_pricing' },
+        ],
+        required: true,
+      },
+      {
+        id: 'pricing_amount',
+        label: 'What is your starting price?',
+        hint: 'Numbers only — e.g. 5000 or 29',
+        type: 'price',
+        placeholder: '5000',
+        required: false,
+        conditional: (answers) => answers.pricing_show === 'show_range' || answers.pricing_show === 'show_exact',
+      },
+      {
+        id: 'social',
+        label: 'Social media handles (optional)',
+        hint: 'AI adds follow links and social proof copy',
+        type: 'social',
+        required: false,
+      },
+      {
+        id: 'needs_backend',
+        label: 'Does your site need a backend?',
+        hint: 'AI will grade complexity and flag what needs external services',
+        type: 'options',
+        options: [
+          { label: 'No — frontend only', value: 'frontend_only' },
+          { label: 'Yes — user login / signup', value: 'needs_auth' },
+          { label: 'Yes — database / storage', value: 'needs_db' },
+          { label: 'Yes — payments', value: 'needs_payments' },
+          { label: 'Not sure — AI decide', value: 'ai_decide' },
+        ],
+        required: true,
+      },
+    ]
   },
   {
-    id: 'location',
-    block: 1,
-    blockLabel: 'Foundation',
-    label: 'Where are you based?',
-    hint: 'City and country — localises copy like "Lagos delivery" vs "London delivery"',
-    type: 'text',
-    placeholder: 'e.g. Lagos, Nigeria',
-    required: true,
-  },
-
-  // ── BLOCK 2: CONVERSION ──────────────────────────────────────────────────
-  {
-    id: 'cta_action',
-    block: 2,
-    blockLabel: 'Conversion',
-    label: 'What is the ONE action you want visitors to take?',
-    hint: 'This sets every CTA button across the entire site',
-    type: 'options',
-    options: [
-      { label: 'Book a call',     value: 'Book a call — use a calendar booking CTA throughout' },
-      { label: 'Buy a product',   value: 'Buy a product — use shop / add to cart CTAs throughout' },
-      { label: 'Send a WhatsApp', value: 'Send a WhatsApp message — all CTAs open a WhatsApp chat link' },
-      { label: 'Sign up',         value: 'Sign up — use email signup / account creation CTAs throughout' },
-      { label: 'Get a quote',     value: 'Get a quote — use a quote request form as the primary CTA' },
-      { label: 'Visit the store', value: 'Visit the physical store — CTAs show address and directions' },
-    ],
-    required: true,
-  },
-  {
-    id: 'selling_point',
-    block: 2,
-    blockLabel: 'Conversion',
-    label: 'What is your biggest selling point over competitors?',
-    hint: 'This becomes the hero headline hook — be specific',
-    type: 'text',
-    placeholder: 'e.g. We deliver in 2 hours — no one else in Lagos does that',
-    required: true,
-  },
-  {
-    id: 'pricing_show',
-    block: 2,
-    blockLabel: 'Conversion',
-    label: 'Do you want to show pricing on the site?',
-    hint: 'Controls whether a pricing section is generated',
-    type: 'options',
-    options: [
-      { label: 'Yes — price range',  value: 'show_range' },
-      { label: 'Yes — exact prices', value: 'show_exact' },
-      { label: 'No — "Get a quote"', value: 'no_pricing' },
-    ],
-    required: true,
+    page: 3,
+    label: 'Content',
+    questions: [
+      {
+        id: 'ideal_customer',
+        label: 'Describe your ideal customer',
+        hint: 'AI writes copy that speaks directly to this person',
+        type: 'text',
+        placeholder: 'e.g. Working mothers aged 25–40 in Abuja who want healthy food fast',
+        required: false,
+      },
+      {
+        id: 'problem_solved',
+        label: 'What problem do you solve for them?',
+        hint: 'Becomes the pain point the hero section addresses',
+        type: 'text',
+        placeholder: "e.g. They don't have time to cook but want their family eating well",
+        required: false,
+      },
+      {
+        id: 'services',
+        label: 'List up to 3 services or products',
+        hint: 'These become real service cards — not "Service 1, Service 2"',
+        type: 'text',
+        placeholder: 'e.g. Hair braiding, Lash extensions, Nail art',
+        required: false,
+      },
+      {
+        id: 'testimonial',
+        label: 'Any real customer feedback?',
+        hint: 'One quote — AI writes 3 testimonials in the same tone',
+        type: 'text',
+        placeholder: '"Best jollof I\'ve ever ordered!" — Tolu, Lekki',
+        required: false,
+      },
+      {
+        id: 'image_links',
+        label: 'Any image links to include? (optional)',
+        hint: 'Paste a Google Drive, Instagram, or direct image URL — AI injects it into hero or gallery',
+        type: 'text',
+        placeholder: 'e.g. https://drive.google.com/...',
+        required: false,
+      },
+    ]
   },
   {
-    id: 'pricing_amount',
-    block: 2,
-    blockLabel: 'Conversion',
-    label: 'What is your starting price?',
-    hint: 'e.g. "From ₦5,000" or "Plans from $29/month"',
-    type: 'text',
-    placeholder: 'e.g. From ₦5,000 per order',
-    required: false,
-    conditional: (answers) => answers.pricing_show === 'show_range' || answers.pricing_show === 'show_exact',
-  },
-
-  // ── BLOCK 3: AUDIENCE ────────────────────────────────────────────────────
-  {
-    id: 'ideal_customer',
-    block: 3,
-    blockLabel: 'Audience',
-    label: 'Describe your ideal customer in one sentence',
-    hint: 'Grox writes copy that speaks directly to this person',
-    type: 'text',
-    placeholder: 'e.g. Working mothers aged 25–40 in Abuja who want healthy food delivered fast',
-    required: false,
-  },
-  {
-    id: 'problem_solved',
-    block: 3,
-    blockLabel: 'Audience',
-    label: 'What problem do you solve for them?',
-    hint: 'This becomes the pain point the hero section addresses',
-    type: 'text',
-    placeholder: "e.g. They don't have time to cook but still want their family eating well",
-    required: false,
-  },
-
-  // ── BLOCK 4: BRAND VOICE ─────────────────────────────────────────────────
-  {
-    id: 'voice',
-    block: 4,
-    blockLabel: 'Brand voice',
-    label: 'How should the site sound?',
-    hint: 'Every line of placeholder copy will match this voice',
-    type: 'options',
-    options: [
-      { label: 'Confident & direct',  value: 'confident, direct, and no-nonsense — short punchy sentences' },
-      { label: 'Warm & friendly',     value: 'warm, friendly, and conversational — like talking to a trusted friend' },
-      { label: 'Luxury & refined',    value: 'luxury, refined, and aspirational — elevated language, no slang' },
-      { label: 'Energetic & bold',    value: 'energetic, bold, and motivating — lots of verbs and exclamation' },
-      { label: 'Calm & trustworthy',  value: 'calm, reassuring, and trustworthy — measured and credible tone' },
-    ],
-    required: false,
-  },
-  {
-    id: 'brand_inspiration',
-    block: 4,
-    blockLabel: 'Brand voice',
-    label: 'Any brand or website you admire?',
-    hint: 'Grox uses this as a reference for design language and copy style',
-    type: 'text',
-    placeholder: 'e.g. Apple, Paystack, Flutterwave, Zara',
-    required: false,
-  },
-
-  // ── BLOCK 5: VISUAL ──────────────────────────────────────────────────────
-  {
-    id: 'primary_color',
-    block: 5,
-    blockLabel: 'Visual',
-    label: 'Primary color',
-    hint: 'Used for buttons, links, and highlights across the site',
-    type: 'color-pick',
-    colors: [
-      { name: 'Midnight Black', hex: '#0A0A0A' },
-      { name: 'Navy Blue',      hex: '#1E3A5F' },
-      { name: 'Royal Blue',     hex: '#1A6BFF' },
-      { name: 'Deep Purple',    hex: '#5B21B6' },
-      { name: 'Forest Green',   hex: '#166534' },
-      { name: 'Emerald',        hex: '#059669' },
-      { name: 'Crimson Red',    hex: '#DC2626' },
-      { name: 'Rose Pink',      hex: '#E11D74' },
-      { name: 'Burnt Orange',   hex: '#EA580C' },
-      { name: 'Gold',           hex: '#B45309' },
-      { name: 'Teal',           hex: '#0D9488' },
-      { name: 'Slate Gray',     hex: '#475569' },
-    ],
-    required: false,
-  },
-  {
-    id: 'background_tone',
-    block: 5,
-    blockLabel: 'Visual',
-    label: 'Background tone',
-    hint: 'Sets the overall page feel',
-    type: 'options',
-    options: [
-      { label: 'Light',   value: 'light background — white or off-white surfaces' },
-      { label: 'Dark',    value: 'dark background — near-black or deep navy surfaces' },
-      { label: 'Neutral', value: 'neutral background — warm beige, soft gray, or cream surfaces' },
-    ],
-    required: false,
-  },
-  {
-    id: 'font_personality',
-    block: 5,
-    blockLabel: 'Visual',
-    label: 'Font personality',
-    hint: 'Controls the typographic character of the site',
-    type: 'options',
-    options: [
-      { label: 'Serif — editorial', value: 'serif editorial typeface — think Fraunces, Playfair, or similar' },
-      { label: 'Sans — modern',     value: 'clean sans-serif typeface — think Outfit, Inter, or similar' },
-      { label: 'Display — bold',    value: 'bold display typeface with strong personality — think Anton, Space Grotesk, or similar' },
-    ],
-    required: false,
-  },
-
-  // ── BLOCK 6: REAL CONTENT ────────────────────────────────────────────────
-  {
-    id: 'services',
-    block: 6,
-    blockLabel: 'Real content',
-    label: 'List up to 3 services or products you offer',
-    hint: 'These become actual service cards — not "Service 1, Service 2"',
-    type: 'text',
-    placeholder: 'e.g. Hair braiding, Lash extensions, Nail art',
-    required: false,
-  },
-  {
-    id: 'testimonial',
-    block: 6,
-    blockLabel: 'Real content',
-    label: 'Do you have any real customer feedback to share?',
-    hint: 'One quote is enough — Groq writes 3 testimonials in the same tone',
-    type: 'text',
-    placeholder: '"Best jollof I\'ve ever ordered — delivered in 45 minutes!" — Tolu, Lekki',
-    required: false,
-  },
-  {
-    id: 'contact',
-    block: 6,
-    blockLabel: 'Real content',
-    label: 'Contact details to include',
-    hint: 'Phone, WhatsApp, email, address — paste any combination',
-    type: 'text',
-    placeholder: 'e.g. +234 801 234 5678 · hello@bella.com · 14 Admiralty Way, Lekki',
-    required: false,
-  },
-
-  // ── BLOCK 7: PAGES & FEATURES ────────────────────────────────────────────
-  {
-    id: 'pages',
-    block: 7,
-    blockLabel: 'Pages & features',
-    label: 'Pages to include',
-    hint: 'Select all that apply',
-    type: 'multi',
-    options: [
-      'Home', 'About', 'Services', 'Portfolio', 'Shop',
-      'Pricing', 'Blog', 'Contact', 'FAQ', 'Gallery',
-      'Testimonials', 'Booking',
-    ],
-    required: false,
-  },
-  {
-    id: 'features',
-    block: 7,
-    blockLabel: 'Pages & features',
-    label: 'Special features',
-    hint: 'Select anything you want built in',
-    type: 'multi',
-    options: [
-      'Online Booking', 'Payments', 'Login / Signup', 'WhatsApp Button',
-      'Photo Gallery', 'Newsletter', 'Search', 'Dark Mode',
-      'Animations', 'Map', 'Social Media Links',
-    ],
-    required: false,
+    page: 4,
+    label: 'Visual',
+    questions: [
+      {
+        id: 'primary_color',
+        label: 'Primary color',
+        hint: 'Used for buttons, links, and highlights',
+        type: 'color-pick',
+        colors: [
+          { name: 'Midnight Black', hex: '#0A0A0A' },
+          { name: 'Navy Blue', hex: '#1E3A5F' },
+          { name: 'Royal Blue', hex: '#1A6BFF' },
+          { name: 'Deep Purple', hex: '#5B21B6' },
+          { name: 'Forest Green', hex: '#166534' },
+          { name: 'Emerald', hex: '#059669' },
+          { name: 'Crimson Red', hex: '#DC2626' },
+          { name: 'Rose Pink', hex: '#E11D74' },
+          { name: 'Burnt Orange', hex: '#EA580C' },
+          { name: 'Gold', hex: '#B45309' },
+          { name: 'Teal', hex: '#0D9488' },
+          { name: 'Slate Gray', hex: '#475569' },
+        ],
+        required: false,
+      },
+      {
+        id: 'background_tone',
+        label: 'Background tone',
+        hint: 'Sets the overall page feel',
+        type: 'options',
+        options: [
+          { label: 'Light', value: 'light background — white or off-white surfaces' },
+          { label: 'Dark', value: 'dark background — near-black or deep navy surfaces' },
+          { label: 'Neutral', value: 'neutral background — warm beige, soft gray, or cream surfaces' },
+        ],
+        required: false,
+      },
+      {
+        id: 'font_personality',
+        label: 'Font personality',
+        hint: 'Click a font to preview how your site will feel',
+        type: 'font-pick',
+        fonts: [
+          { name: 'Fraunces', category: 'Serif Editorial', personality: 'Slow, confident, quirky', sample: 'The prompt behind the pixel', googleFont: 'Fraunces:wght@400;700' },
+          { name: 'Playfair Display', category: 'Transitional Serif', personality: 'Elegant, editorial, timeless', sample: 'Design is not what it looks like', googleFont: 'Playfair+Display:wght@400;700' },
+          { name: 'Space Grotesk', category: 'Geometric Sans', personality: 'Technical, confident, quirky', sample: 'Ship fast. Design faster.', googleFont: 'Space+Grotesk:wght@400;700' },
+          { name: 'Outfit', category: 'Geometric Sans', personality: 'Friendly, clean, approachable', sample: 'Good design feels invisible.', googleFont: 'Outfit:wght@400;700' },
+          { name: 'Bricolage Grotesque', category: 'Variable Grotesque', personality: 'Expressive, playful structure', sample: 'Build what you can imagine.', googleFont: 'Bricolage+Grotesque:wght@400;700' },
+          { name: 'Cormorant Garamond', category: 'Classical Serif', personality: 'Refined, whisper-quiet luxury', sample: 'Craft speaks louder than noise.', googleFont: 'Cormorant+Garamond:wght@400;700' },
+          { name: 'Syne', category: 'Display Grotesque', personality: 'Irregular, artistic, rule-breaking', sample: 'Rules exist to be redesigned.', googleFont: 'Syne:wght@400;700' },
+          { name: 'DM Serif Display', category: 'High Contrast Serif', personality: 'Sharp, authoritative, high contrast', sample: 'Every pixel has a purpose.', googleFont: 'DM+Serif+Display' },
+        ],
+        required: false,
+      },
+      {
+        id: 'pages',
+        label: 'Pages to include',
+        hint: 'AI will also recommend pages based on your business type',
+        type: 'multi',
+        options: ['Home', 'About', 'Services', 'Portfolio', 'Shop', 'Pricing', 'Blog', 'Contact', 'FAQ', 'Gallery', 'Testimonials', 'Booking'],
+        required: false,
+      },
+      {
+        id: 'features',
+        label: 'Special features',
+        hint: 'Select anything you want built in',
+        type: 'multi',
+        options: ['Online Booking', 'Payments', 'Login / Signup', 'WhatsApp Button', 'Photo Gallery', 'Newsletter', 'Search', 'Dark Mode', 'Animations', 'Map', 'Social Media Links'],
+        required: false,
+      },
+    ]
   },
 ]
 
@@ -270,7 +247,10 @@ const LOADING_MESSAGES = [
 function useLoadingMessage(active) {
   const [index, setIndex] = useState(0)
   useEffect(() => {
-    if (!active) { setIndex(0); return }
+    if (!active) {
+      const t = setTimeout(() => setIndex(0), 0)
+      return () => clearTimeout(t)
+    }
     const t = setInterval(() => setIndex(i => (i + 1) % LOADING_MESSAGES.length), 1600)
     return () => clearInterval(t)
   }, [active])
@@ -281,9 +261,11 @@ function useTypewriter(text, active, speed = 3) {
   const [displayed, setDisplayed] = useState('')
   const [done, setDone] = useState(false)
   const idx = useRef(0)
+
   useEffect(() => {
-    setDisplayed(''); setDone(false); idx.current = 0
-    if (!text || !active) return
+    const reset = setTimeout(() => { setDisplayed(''); setDone(false) }, 0)
+    idx.current = 0
+    if (!text || !active) return () => clearTimeout(reset)
     const chunk = Math.max(1, Math.floor(text.length / 200))
     const t = setInterval(() => {
       const end = Math.min(idx.current + chunk, text.length)
@@ -292,6 +274,7 @@ function useTypewriter(text, active, speed = 3) {
       if (end >= text.length) { clearInterval(t); setDone(true) }
     }, speed)
     return () => clearInterval(t)
+// eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, active])
   return { displayed, done }
 }
@@ -305,11 +288,83 @@ function LovableLogo({ size = 18 }) {
   )
 }
 
+const NIGERIAN_CITIES = [
+  'Lagos', 'Abuja', 'Kano', 'Ibadan', 'Port Harcourt', 'Benin City', 'Maiduguri',
+  'Zaria', 'Aba', 'Jos', 'Ilorin', 'Oyo', 'Enugu', 'Abeokuta', 'Onitsha',
+  'Warri', 'Sokoto', 'Calabar', 'Kaduna', 'Akure', 'Bauchi', 'Owerri',
+  'Asaba', 'Umuahia', 'Uyo', 'Makurdi', 'Minna', 'Yola', 'Lafia', 'Gusau',
+]
+
+const WORLD_CITIES = [
+  'London, UK', 'New York, US', 'Toronto, Canada', 'Dubai, UAE',
+  'Johannesburg, South Africa', 'Nairobi, Kenya', 'Accra, Ghana',
+  'Berlin, Germany', 'Paris, France', 'Sydney, Australia',
+  'Amsterdam, Netherlands', 'Stockholm, Sweden',
+]
+
+const ALL_LOCATIONS = [
+  ...NIGERIAN_CITIES.map(c => `${c}, Nigeria`),
+  ...WORLD_CITIES,
+]
+
+const SOCIAL_PLATFORMS = [
+  { id: 'instagram', label: 'Instagram', prefix: 'instagram.com/' },
+  { id: 'twitter', label: 'X (Twitter)', prefix: 'x.com/' },
+  { id: 'facebook', label: 'Facebook', prefix: 'facebook.com/' },
+  { id: 'tiktok', label: 'TikTok', prefix: 'tiktok.com/@' },
+  { id: 'linkedin', label: 'LinkedIn', prefix: 'linkedin.com/in/' },
+]
+function LocationInput({ value, placeholder, onChange }) {
+  const [query, setQuery] = useState('')
+  const [focused, setFocused] = useState(false)
+
+  return (
+    <div className="pp-location-wrap">
+      <input
+        className="pp-input"
+        placeholder={placeholder}
+        value={value || query}
+        onChange={e => {
+          setQuery(e.target.value)
+          onChange(e.target.value)
+          setFocused(true)
+        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 150)}
+      />
+      {focused && (
+        <div className="pp-location-dropdown">
+          {ALL_LOCATIONS
+            .filter(l => l.toLowerCase().includes((value || query).toLowerCase()))
+            .slice(0, 8)
+            .map(l => (
+              <button key={l} className="pp-location-option" onMouseDown={() => {
+                onChange(l)
+                setQuery(l)
+                setFocused(false)
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                {l}
+              </button>
+            ))
+          }
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PersonalizePage({ site, onBack, user, onSignIn }) {
-  const [step, setStep]                 = useState(0)
+  const [currentPage, setCurrentPage]   = useState(0)
   const [answers, setAnswers]           = useState({})
   const [multiSelects, setMultiSelects] = useState({})
   const [phase, setPhase]               = useState('questions')
+  const [socialHandles, setSocialHandles] = useState({})
+  const [aiSuggestions, setAiSuggestions] = useState({})
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const [fontLoaded, setFontLoaded] = useState({})
+  const [_savedAt, setSavedAt] = useState(null)
+  const [saveStatus, setSaveStatus] = useState('')
   const [generatedPrompt, setGeneratedPrompt] = useState('')
   const [fieldError, setFieldError]     = useState('')
   const [apiError, setApiError]         = useState('')
@@ -317,26 +372,113 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
   const [downloaded, setDownloaded]     = useState(false)
   const [purchaseId, setPurchaseId] = useState(null)
   const [promptPreview, setPromptPreview] = useState('')
-  const [paymentDone, setPaymentDone] = useState(false)
-  const inputRef                        = useRef(null)
   const resultRef                       = useRef(null)
 
   // Only show questions whose conditional (if any) passes
-  const activeQuestions = QUESTIONS.filter(q => !q.conditional || q.conditional(answers))
-
-  const q          = activeQuestions[step]
-  const totalSteps = activeQuestions.length
-  const progress   = Math.round((step / totalSteps) * 100)
-
+  const totalPages = PAGES.length
+  const activePage = PAGES[currentPage]
+  const activeQuestions = activePage.questions.filter(q => !q.conditional || q.conditional(answers))
+  const progress = Math.round(((currentPage) / totalPages) * 100)
   const loadingMsg = useLoadingMessage(phase === 'generating')
   const { displayed: typedPrompt, done: typingDone } = useTypewriter(generatedPrompt, phase === 'result')
 
+  // Auto-save to Supabase on every answer change
   useEffect(() => {
-    if (phase === 'questions' && q?.type === 'text') {
-      setTimeout(() => inputRef.current?.focus(), 80)
+    if (!user || Object.keys(answers).length === 0) return
+    const timeout = setTimeout(async () => {
+      try {
+        await supabase.from('personalise_progress').upsert({
+          user_id: user.id,
+          site_id: site.id,
+          answers: { ...answers, ...multiSelects, social: socialHandles },
+          page: currentPage,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,site_id' })
+        setSavedAt(new Date())
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus(''), 2000)
+      } catch { setSaveStatus('error') }
+    }, 1500)
+    return () => clearTimeout(timeout)
+  }, [answers, multiSelects, socialHandles]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load saved progress on mount
+  useEffect(() => {
+    if (!user) return
+    async function loadProgress() {
+      const { data } = await supabase
+        .from('personalise_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('site_id', site.id)
+        .maybeSingle()
+      if (data?.answers) {
+        setAnswers(data.answers)
+        setMultiSelects(data.answers)
+        setSocialHandles(data.answers.social || {})
+        setCurrentPage(data.page || 0)
+        setSavedAt(new Date(data.updated_at))
+      }
     }
-    setFieldError('')
-  }, [step, phase])
+    loadProgress()
+  }, [user, site.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load Google Fonts for font picker
+  useEffect(() => {
+    PAGES[3].questions.find(q => q.id === 'font_personality')?.fonts?.forEach(font => {
+      if (fontLoaded[font.name]) return
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = `https://fonts.googleapis.com/css2?family=${font.googleFont}&display=swap`
+      document.head.appendChild(link)
+      setFontLoaded(prev => ({ ...prev, [font.name]: true }))
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // AI suggestions when business description is filled
+  useEffect(() => {
+    const business = answers.business
+    if (!business || business.length < 20 || aiSuggestions.cta) return
+    const timeout = setTimeout(() => fetchAiSuggestions(business), 800)
+    return () => clearTimeout(timeout)
+  }, [answers.business]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function fetchAiSuggestions(business) {
+    setSuggestLoading(true)
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `Business: "${business}"
+            
+Respond ONLY with a JSON object, no markdown:
+{
+  "cta": "one of: Book a call, Buy a product, Send a WhatsApp, Sign up, Get a quote, Visit the store",
+  "pages": ["array of recommended page names from: Home, About, Services, Portfolio, Shop, Pricing, Blog, Contact, FAQ, Gallery, Testimonials, Booking"],
+  "features": ["array of recommended features from: Online Booking, Payments, Login / Signup, WhatsApp Button, Photo Gallery, Newsletter, Search, Dark Mode, Animations, Map, Social Media Links"],
+  "niche": "one word niche category",
+  "complexity": "Simple landing page | Multi-page site | Complex app",
+  "grade": "High Integrity / Easy | Moderate complexity | Requires external services"
+}`
+          }]
+        })
+      })
+      const data = await res.json()
+      const text = data.content?.[0]?.text || '{}'
+      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
+      setAiSuggestions(parsed)
+
+      // Auto-pre-select recommended pages and features
+      if (parsed.pages) setMultiSelects(ms => ({ ...ms, pages: parsed.pages }))
+      if (parsed.features) setMultiSelects(ms => ({ ...ms, features: parsed.features }))
+    } catch { /* silent fail */ }
+    setSuggestLoading(false)
+  }
 
   useEffect(() => {
     if (phase === 'result' && resultRef.current) {
@@ -344,54 +486,67 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
     }
   }, [phase])
 
-  function handleOptionPick(val) {
-    const updated = { ...answers, [q.id]: val }
-    setAnswers(updated)
-    setTimeout(() => advanceWith(updated), 200)
+  function handleOptionPick(qId, val) {
+    setAnswers(a => ({ ...a, [qId]: val }))
   }
 
-  function handleColorPick(hex, name) {
-    const updated = { ...answers, [q.id]: `${name} (${hex})` }
-    setAnswers(updated)
-    setTimeout(() => advanceWith(updated), 200)
+  function handleColorPick(hex, name, qId) {
+    setAnswers(a => ({ ...a, [qId]: `${name} (${hex})` }))
   }
 
-  function handleMultiToggle(opt) {
+  function handleFontPick(fontName, qId) {
+    setAnswers(a => ({ ...a, [qId]: fontName }))
+  }
+
+  function handleMultiToggle(qId, opt) {
     setMultiSelects(ms => {
-      const curr = ms[q.id] || []
-      return { ...ms, [q.id]: curr.includes(opt) ? curr.filter(x => x !== opt) : [...curr, opt] }
+      const curr = ms[qId] || []
+      return { ...ms, [qId]: curr.includes(opt) ? curr.filter(x => x !== opt) : [...curr, opt] }
     })
-    setFieldError('')
   }
 
-  function advanceWith(currentAnswers) {
+  function validatePage() {
+    for (const q of activeQuestions) {
+      if (q.required && q.type === 'text' && !(answers[q.id] || '').trim()) {
+        return `${q.label} is required`
+      }
+      if (q.required && q.type === 'location' && !(answers[q.id] || '').trim()) {
+        return 'Location is required'
+      }
+      if (q.required && q.type === 'options' && !answers[q.id]) {
+        return `${q.label} is required`
+      }
+    }
+    return null
+  }
+
+  function nextPage() {
+    const err = validatePage()
+    if (err) { setFieldError(err); return }
     setFieldError('')
-    const merged = { ...currentAnswers }
-    if (q.type === 'multi') merged[q.id] = multiSelects[q.id] || []
-    setAnswers(merged)
-
-    // Re-evaluate active questions with the newly merged answers so the
-    // conditional pricing_amount question is counted correctly
-    const nextActive = QUESTIONS.filter(qq => !qq.conditional || qq.conditional(merged))
-    const isLast = step >= nextActive.length - 1
-
-    if (!isLast) {
-      setStep(s => s + 1)
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(p => p + 1)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
-      generate({ ...merged, [q.id]: q.type === 'multi' ? (multiSelects[q.id] || []) : (currentAnswers[q.id] || '') })
+      // Merge all answers and generate
+      const finalAnswers = {
+        ...answers,
+        ...Object.fromEntries(Object.entries(multiSelects).map(([k, v]) => [k, v])),
+        social: socialHandles,
+        whatsapp: answers.whatsapp ? `+234${answers.whatsapp}` : '',
+        email: answers.email ? (answers.email.includes('@') ? answers.email : `${answers.email}@gmail.com`) : '',
+        ai_suggestions: aiSuggestions,
+      }
+      generate(finalAnswers)
     }
   }
 
-  function advance() {
-    if (q.required && q.type === 'text' && !(answers[q.id] || '').trim()) {
-      setFieldError(`${q.label} is required to continue`)
-      return
+  function prevPage() {
+    if (currentPage > 0) {
+      setCurrentPage(p => p - 1)
+      setFieldError('')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
-    advanceWith(answers)
-  }
-
-  function back() {
-    if (step > 0) { setStep(s => s - 1); setFieldError('') }
   }
 
   async function generate(finalAnswers) {
@@ -436,24 +591,7 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
       await fetchFullPurchasedPrompt(result.purchase_id)
     } else {
       // Check if user is Pro — skip payment if they are
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('status')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle()
-
-      if (sub) {
-        // Pro user — mark as paid and show result directly
-        await supabase
-          .from('prompt_purchases')
-          .update({ paid: true })
-          .eq('id', result.purchase_id)
-
-        await fetchFullPurchasedPrompt(result.purchase_id)
-      } else {
-        setPhase('payment')
-      }
+    setPhase('payment')  
     }
   } catch (err) {
     setApiError(err.message)
@@ -501,9 +639,10 @@ async function fetchFullPurchasedPrompt(id) {
   }
 
   function restart() {
-    setStep(0); setAnswers({}); setMultiSelects({})
+    setCurrentPage(0); setAnswers({}); setMultiSelects({})
     setGeneratedPrompt(''); setPhase('questions')
     setFieldError(''); setApiError('')
+    setSocialHandles({}); setAiSuggestions({})
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -521,9 +660,9 @@ function handlePayment() {
       site_id: site.id,
       user_id: user.id,
     },
-    callback: function(response) {
-      pollForConfirmation(purchaseId)
-    },
+    callback: function() {
+  pollForConfirmation(purchaseId)
+},
     onClose: function() {},
   })
 
@@ -567,8 +706,9 @@ async function pollForConfirmation(id) {
         setPhase('result')
         return
       }
-    } catch (err) {}
-
+    } catch {
+  // ignore polling errors, will retry
+}
     if (attempts >= 10) {
       clearInterval(poll)
       setApiError('Payment confirmed but prompt took too long to load. Please refresh.')
@@ -631,145 +771,283 @@ async function pollForConfirmation(id) {
               <p className="pp-hero-sub">Answer a few questions and Groq will rewrite this prompt with your brand, colors, and details injected.</p>
             </div>
 
+            {/* Page indicators */}
+            <div className="pp-page-indicators">
+              {PAGES.map((p, i) => (
+                <div
+                  key={i}
+                  className={`pp-page-dot ${i === currentPage ? 'pp-page-dot--active' : ''} ${i < currentPage ? 'pp-page-dot--done' : ''}`}
+                  onClick={() => i < currentPage && setCurrentPage(i)}
+                >
+                  {i < currentPage
+                    ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    : i + 1
+                  }
+                  <span className="pp-page-dot-label">{p.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Progress bar */}
             <div className="pp-progress-wrap">
               <div className="pp-progress-bar">
                 <div className="pp-progress-fill" style={{ width: `${progress}%` }}/>
               </div>
-              <span className="pp-progress-label">{step + 1} of {totalSteps}</span>
+              <span className="pp-progress-label">Page {currentPage + 1} of {totalPages}</span>
             </div>
 
-            <div className="pp-question-card">
-              <div className="pp-q-meta">
-                <span className="pp-q-number">{(step + 1).toString().padStart(2, '0')}</span>
-                {q.required && <span className="pp-q-required">Required</span>}
+            {/* Save status */}
+            {saveStatus === 'saved' && (
+              <div className="pp-save-status">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                Progress saved
               </div>
-              <h2 className="pp-q-title">{q.label}</h2>
-              {q.hint && <p className="pp-q-hint">{q.hint}</p>}
+            )}
 
-              {fieldError && (
-                <div className="pp-field-error">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  {fieldError}
-                </div>
-              )}
+            {/* AI suggestions banner */}
+            {suggestLoading && (
+              <div className="pp-ai-banner pp-ai-banner--loading">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                AI is analysing your business...
+              </div>
+            )}
+            {aiSuggestions.niche && !suggestLoading && (
+              <div className="pp-ai-banner">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <strong>AI detected:</strong> {aiSuggestions.niche} business · {aiSuggestions.complexity} · {aiSuggestions.grade}
+              </div>
+            )}
 
-              {/* Text */}
-              {q.type === 'text' && (
-                <input
-                  ref={inputRef}
-                  className="pp-input"
-                  placeholder={q.placeholder}
-                  value={answers[q.id] || ''}
-                  onChange={e => { setAnswers(a => ({ ...a, [q.id]: e.target.value })); setFieldError('') }}
-                  onKeyDown={e => e.key === 'Enter' && advance()}
-                />
-              )}
+            {fieldError && (
+              <div className="pp-field-error">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {fieldError}
+              </div>
+            )}
 
-              {/* Single-select */}
-              {q.type === 'options' && (
-                <div className="pp-options-grid">
-                  {q.options.map(opt => (
-                    <button
-                      key={opt.value}
-                      className={`pp-option ${answers[q.id] === opt.value ? 'pp-option--sel' : ''}`}
-                      onClick={() => handleOptionPick(opt.value)}
-                    >
-                      <div className="pp-radio">
-                        {answers[q.id] === opt.value && <div className="pp-radio-dot"/>}
+            {/* Questions for current page */}
+            <div className="pp-questions-list">
+              {activeQuestions.map((q) => {
+
+                return (
+                  <div key={q.id} className="pp-question-card">
+                    <div className="pp-q-meta">
+                      <span className="pp-q-number">{activePage.label}</span>
+                      {q.required && <span className="pp-q-required">Required</span>}
+                    </div>
+                    <h2 className="pp-q-title">{q.label}</h2>
+                    {q.hint && <p className="pp-q-hint">{q.hint}</p>}
+
+                    {/* AI suggestion badge for CTA */}
+                    {q.aiSuggest && aiSuggestions.cta && (
+                      <div className="pp-ai-suggest" onClick={() => {
+                        const match = q.options.find(o => o.label.toLowerCase().includes(aiSuggestions.cta.toLowerCase()))
+                        if (match) handleOptionPick(q.id, match.value)
+                      }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        AI suggests: <strong>{aiSuggestions.cta}</strong> — tap to select
                       </div>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+                    )}
 
-              {/* Color picker */}
-              {q.type === 'color-pick' && (
-                <div className="pp-color-grid">
-                  {q.colors.map(c => {
-                    const selected = answers[q.id] === `${c.name} (${c.hex})`
-                    const isLight = ['#FFFFFF','#F8F7F4','#FBF8F3','#F1F3F5','#F5F0E8'].includes(c.hex)
-                    return (
-                      <button
-                        key={c.hex}
-                        className={`pp-color-btn ${selected ? 'pp-color-btn--sel' : ''}`}
-                        onClick={() => handleColorPick(c.hex, c.name)}
-                        title={c.name}
-                      >
-                        <div
-                          className="pp-color-swatch"
-                          style={{
-                            background: c.hex,
-                            border: isLight ? '1.5px solid #DDE1EA' : 'none',
+                    {/* Text input */}
+                    {q.type === 'text' && (
+                      <input
+                        className="pp-input"
+                        placeholder={q.placeholder}
+                        value={answers[q.id] || ''}
+                        onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
+                      />
+                    )}
+
+                    {/* Location searchable dropdown */}
+                    {q.type === 'location' && (
+                      <LocationInput
+                        value={answers[q.id] || ''}
+                        placeholder={q.placeholder}
+                        onChange={val => setAnswers(a => ({ ...a, [q.id]: val }))}
+                      />
+                    )}
+                    {/* Phone input with +234 prefix */}
+                    {q.type === 'phone' && (
+                      <div className="pp-phone-wrap">
+                        <span className="pp-phone-prefix">+234</span>
+                        <input
+                          className="pp-input pp-input--phone"
+                          placeholder={q.placeholder}
+                          value={answers[q.id] || ''}
+                          onChange={e => {
+                            const val = e.target.value.replace(/[^0-9]/g, '')
+                            setAnswers(a => ({ ...a, [q.id]: val }))
                           }}
-                        >
-                          {selected && (
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isLight ? '#0A0A0A' : '#fff'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20 6L9 17l-5-5"/>
-                            </svg>
-                          )}
-                        </div>
-                        <span className="pp-color-name">{c.name}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                          maxLength={10}
+                        />
+                      </div>
+                    )}
 
-              {/* Multi chips */}
-              {q.type === 'multi' && (
-                <div className="pp-chips-grid">
-                  {q.options.map(opt => {
-                    const sel = (multiSelects[q.id] || []).includes(opt)
-                    return (
-                      <button
-                        key={opt}
-                        className={`pp-chip ${sel ? 'pp-chip--sel' : ''}`}
-                        onClick={() => handleMultiToggle(opt)}
-                      >
-                        {sel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
-                        {opt}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                    {/* Email input with @gmail.com suffix */}
+                    {q.type === 'email' && (
+                      <div className="pp-email-wrap">
+                        <input
+                          className="pp-input pp-input--email"
+                          placeholder={q.placeholder}
+                          value={answers[q.id] || ''}
+                          onChange={e => {
+                            const val = e.target.value.replace('@gmail.com', '').replace('@', '')
+                            setAnswers(a => ({ ...a, [q.id]: val }))
+                          }}
+                        />
+                        {!(answers[q.id] || '').includes('@') && (
+                          <span className="pp-email-suffix">@gmail.com</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Price input — numbers only */}
+                    {q.type === 'price' && (
+                      <div className="pp-price-wrap">
+                        <span className="pp-price-prefix">₦</span>
+                        <input
+                          className="pp-input pp-input--price"
+                          placeholder={q.placeholder}
+                          value={answers[q.id] || ''}
+                          onChange={e => {
+                            const val = e.target.value.replace(/[^0-9,]/g, '')
+                            setAnswers(a => ({ ...a, [q.id]: val }))
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Social handles */}
+                    {q.type === 'social' && (
+                      <div className="pp-social-list">
+                        {SOCIAL_PLATFORMS.map(p => (
+                          <div key={p.id} className="pp-social-row">
+                            <span className="pp-social-prefix">{p.label}</span>
+                            <input
+                              className="pp-input pp-input--social"
+                              placeholder="@username"
+                              value={socialHandles[p.id] || ''}
+                              onChange={e => setSocialHandles(s => ({ ...s, [p.id]: e.target.value }))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Single select options */}
+                    {q.type === 'options' && (
+                      <div className="pp-options-grid">
+                        {q.options.map(opt => (
+                          <button
+                            key={opt.value}
+                            className={`pp-option ${answers[q.id] === opt.value ? 'pp-option--sel' : ''}`}
+                            onClick={() => handleOptionPick(q.id, opt.value)}
+                          >
+                            <div className="pp-radio">
+                              {answers[q.id] === opt.value && <div className="pp-radio-dot"/>}
+                            </div>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Color picker */}
+                    {q.type === 'color-pick' && (
+                      <div className="pp-color-grid">
+                        {q.colors.map(c => {
+                          const selected = answers[q.id] === `${c.name} (${c.hex})`
+                          const isLight = ['#FFFFFF', '#F8F7F4', '#FBF8F3', '#F1F3F5', '#F5F0E8'].includes(c.hex)
+                          return (
+                            <button
+                              key={c.hex}
+                              className={`pp-color-btn ${selected ? 'pp-color-btn--sel' : ''}`}
+                              onClick={() => handleColorPick(c.hex, c.name, q.id)}
+                              title={c.name}
+                            >
+                              <div className="pp-color-swatch" style={{ background: c.hex, border: isLight ? '1.5px solid #DDE1EA' : 'none' }}>
+                                {selected && (
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isLight ? '#0A0A0A' : '#fff'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                                )}
+                              </div>
+                              <span className="pp-color-name">{c.name}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Font picker with live preview */}
+                    {q.type === 'font-pick' && (
+                      <div className="pp-font-list">
+                        {q.fonts.map(f => (
+                          <button
+                            key={f.name}
+                            className={`pp-font-card ${answers[q.id] === f.name ? 'pp-font-card--sel' : ''}`}
+                            onClick={() => handleFontPick(f.name, q.id)}
+                          >
+                            <div className="pp-font-sample" style={{ fontFamily: `'${f.name}', serif` }}>
+                              {f.sample}
+                            </div>
+                            <div className="pp-font-meta">
+                              <span className="pp-font-name">{f.name}</span>
+                              <span className="pp-font-category">{f.category}</span>
+                              <span className="pp-font-personality">{f.personality}</span>
+                            </div>
+                            {answers[q.id] === f.name && (
+                              <div className="pp-font-check">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Multi chips */}
+                    {q.type === 'multi' && (
+                      <div className="pp-chips-grid">
+                        {q.options.map(opt => {
+                          const sel = (multiSelects[q.id] || []).includes(opt)
+                          return (
+                            <button
+                              key={opt}
+                              className={`pp-chip ${sel ? 'pp-chip--sel' : ''}`}
+                              onClick={() => handleMultiToggle(q.id, opt)}
+                            >
+                              {sel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
+                              {opt}
+                            </button>
+                          )
+                        })}
+                        {q.id === 'pages' && aiSuggestions.pages && (
+                          <p className="pp-ai-chips-note">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            AI pre-selected recommended pages
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
-            {/* Nav — text and multi */}
-            {q.type !== 'options' && q.type !== 'color-pick' && (
-              <div className="pp-nav">
-                <button
-                  className={`pp-nav-back ${step === 0 ? 'pp-nav-back--hidden' : ''}`}
-                  onClick={back}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                  Back
-                </button>
-                <div className="pp-nav-right">
-                  {!q.required && (
-                    <button className="pp-nav-skip" onClick={() => advance()}>Skip</button>
-                  )}
-                  <button className="pp-nav-next" onClick={() => advance()}>
-                    {step === totalSteps - 1 ? 'Generate prompt' : 'Continue'}
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Nav — options and color-pick */}
-            {(q.type === 'options' || q.type === 'color-pick') && step > 0 && (
-              <div className="pp-nav pp-nav--option">
-                <button className="pp-nav-back" onClick={back}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                  Back
-                </button>
-                {!q.required && (
-                  <button className="pp-nav-skip" onClick={() => advanceWith(answers)}>Skip</button>
-                )}
-              </div>
-            )}
+            {/* Page navigation */}
+            <div className="pp-nav">
+              <button
+                className={`pp-nav-back ${currentPage === 0 ? 'pp-nav-back--hidden' : ''}`}
+                onClick={prevPage}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                Back
+              </button>
+              <button className="pp-nav-next" onClick={nextPage}>
+                {currentPage === totalPages - 1 ? 'Generate prompt' : 'Continue'}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </div>
           </>
         )}
 

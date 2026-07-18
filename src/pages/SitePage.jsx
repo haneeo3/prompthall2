@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
 import { useNavigate } from 'react-router-dom'
-import UpgradeModal from '../components/UpgradeModal'
 import './SitePage.css'
 
 const TOOL_LABELS = {
@@ -83,11 +82,9 @@ function Avatar({ name, size = 38, bg = null }) {
   )
 }
 
-export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }) {
-  const [copied, setCopied] = useState(false)
+export default function SitePage({ site, onBack, user, onSignIn }) {  const [copied, setCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [limitReached, setLimitReached] = useState(false)
-  const [showUpgrade, setShowUpgrade] = useState(false)
   const [videoPlaying, setVideoPlaying] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [activeStep, setActiveStep] = useState(null)
@@ -105,7 +102,6 @@ export default function SitePage({ site, onBack, onPersonalize, user, onSignIn }
   const [unlockedPrompt, setUnlockedPrompt] = useState(null)
 const [unlockLoading, setUnlockLoading]   = useState(false)
 const [dailyCount, setDailyCount]         = useState(0)
-const [isPro, setIsPro]                   = useState(false)
 const [countChecked, setCountChecked]     = useState(false)
   const commentInputRef = useRef(null)
   const navigate = useNavigate()
@@ -137,9 +133,9 @@ const [countChecked, setCountChecked]     = useState(false)
     setComments(data || [])
     setCommentsLoading(false)
   }
-// 1. THIS HOOK SHOULD BE JUST ABOVE THE FIX:
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchComments() }, [site])
+
+  // 1. THIS HOOK SHOULD BE JUST ABOVE THE FIX:
+  useEffect(() => { fetchComments() }, [site]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // 2. FIRST PASTED HOOK (Comments Realtime Subscription)
@@ -163,16 +159,7 @@ const [countChecked, setCountChecked]     = useState(false)
     }
     
     async function checkCount() {
-      const { data: sub } = await supabase
-        .from('subscriptions').select('status')
-        .eq('user_id', user.id).eq('status', 'active').maybeSingle()
-        
-      if (sub) { 
-        setIsPro(true); 
-        setCountChecked(true); 
-        return; 
-      }
-
+      
       const startOfDay = new Date(); 
       startOfDay.setHours(0,0,0,0)
       
@@ -221,15 +208,6 @@ const [countChecked, setCountChecked]     = useState(false)
   async function handleCopyPrompt() {
     if (!user) { onSignIn(); return }
 
-    const { data: sub } = await supabase
-      .from('subscriptions').select('status')
-      .eq('user_id', user.id).eq('status', 'active').single()
-
-    if (sub) {
-      navigator.clipboard.writeText(unlockedPrompt || '')
-      setCopied(true); setTimeout(() => setCopied(false), 2200); return
-    }
-
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0)
     const { count } = await supabase.from('prompt_unlocks')
       .select('*', { count: 'exact', head: true })
@@ -248,15 +226,9 @@ const [countChecked, setCountChecked]     = useState(false)
     setCopied(true); setTimeout(() => setCopied(false), 2200)
   }
 
-  async function handleUnlock() {
+async function handleUnlock() {
 
   if (!user) { onSignIn(); return }
-
-  if (isPro) {
-
-    await fetchFullPrompt(); return
-
-  }
 
   if (dailyCount >= 2) { setLimitReached(true); return }
 
@@ -280,6 +252,37 @@ const [countChecked, setCountChecked]     = useState(false)
 
   setUnlockLoading(false)
 
+}
+
+function handlePaidUnlock() {
+  if (!user?.email) { onSignIn(); return }
+
+  const handler = window.PaystackPop.setup({
+    key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+    email: user.email,
+    amount: 399900,
+    currency: 'NGN',
+    ref: `pp_${site.id}_${user.id}_${Date.now()}`,
+    metadata: {
+      site_id: site.id,
+      user_id: user.id,
+    },
+    callback: function() {
+      pollForAccess()
+    },
+    onClose: function() {},
+  })
+
+  handler.openIframe()
+}
+
+async function pollForAccess() {
+  await supabase
+    .from('prompt_access')
+    .insert({ user_id: user.id, reference: `access_${user.id}_${Date.now()}` })
+
+  await fetchFullPrompt()
+  setLimitReached(false)
 }
 
 async function fetchFullPrompt() {
@@ -422,7 +425,7 @@ async function fetchFullPrompt() {
       )}
       {unlockedPrompt && (
         <button className="sp-prompt-personalise-btn"
-          onClick={() => user ? navigate(`/personalise/${site.id}`) : onSignIn()}>
+          onClick={() => user ? navigate(`/site/personalise/${site.id}`) : onSignIn()}>
           Personalise →
         </button>
       )}
@@ -485,9 +488,9 @@ async function fetchFullPrompt() {
           ) : countChecked && dailyCount >= 2 ? (
             <>
               <p className="sp-blur-title">Daily limit reached</p>
-              <p className="sp-blur-sub">You've used your 2 free unlocks today</p>
-              <button className="sp-blur-btn sp-blur-btn--upgrade" onClick={() => setShowUpgrade(true)}>
-                Upgrade to Pro — unlimited access
+              <p className="sp-blur-sub">Pay once. Access every prompt in the gallery forever.</p>
+              <button className="sp-blur-btn" onClick={handlePaidUnlock}>
+                Unlock for ₦3,999 →
               </button>
             </>
           ) : (
@@ -757,16 +760,15 @@ async function fetchFullPrompt() {
           <div className="limit-modal" onClick={e => e.stopPropagation()}>
             <div className="limit-icon">🚀</div>
             <h2>Daily limit reached</h2>
-            <p>Free accounts can unlock 2 prompts per day. Upgrade to Pro for unlimited access.</p>
-            <button className="limit-btn-pro" onClick={() => { setLimitReached(false); setShowUpgrade(true) }}>Upgrade to Pro →</button>
+            <p>Free accounts get 2 free unlocks per day. Pay once to unlock this prompt forever.</p>
+            <button className="limit-btn-pro" onClick={() => { setLimitReached(false); handlePaidUnlock() }}>
+              Unlock for ₦3,999 →
+            </button>
             <button className="limit-btn-ghost" onClick={() => setLimitReached(false)}>Maybe later</button>
           </div>
         </div>
       )}
-
-      {showUpgrade && (
-        <UpgradeModal user={user} onClose={() => setShowUpgrade(false)} onSuccess={() => setShowUpgrade(false)} />
-      )}
+      
     </div>
   )
 }
