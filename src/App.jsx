@@ -7,7 +7,7 @@ import SubmitPage from './pages/SubmitPage'
 import AuthPage from './pages/AuthPage'
 import NotFound from './pages/NotFound'
 import AdminPage from './pages/AdminPage'
-import PersonalizePage from './pages/PersonalizePage'
+import PersonalizePage from './pages/Personalizepage'
 import Dashboard from './pages/Dashboard'
 import './index.css'
 
