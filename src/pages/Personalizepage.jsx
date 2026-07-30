@@ -55,17 +55,19 @@ const PAGES = [
     questions: [
       {
         id: 'cta_action',
-        label: 'What is the ONE action you want visitors to take?',
-        hint: 'AI will suggest the best option based on your business type',
-        type: 'options',
+        label: 'What actions do you want visitors to take?',
+        hint: 'Select all that apply — AI will suggest the best primary one',
+        type: 'cta-multi',
         aiSuggest: true,
         options: [
-          { label: 'Book a call', value: 'Book a call — use a calendar booking CTA throughout' },
-          { label: 'Buy a product', value: 'Buy a product — use shop / add to cart CTAs throughout' },
-          { label: 'Send a WhatsApp', value: 'Send a WhatsApp message — all CTAs open a WhatsApp chat link' },
-          { label: 'Sign up', value: 'Sign up — use email signup / account creation CTAs throughout' },
-          { label: 'Get a quote', value: 'Get a quote — use a quote request form as the primary CTA' },
-          { label: 'Visit the store', value: 'Visit the physical store — CTAs show address and directions' },
+          { label: 'Book a call', value: 'Book a call — use a calendar booking CTA throughout', icon: '📞' },
+          { label: 'Buy a product', value: 'Buy a product — use shop / add to cart CTAs throughout', icon: '🛒' },
+          { label: 'Send a WhatsApp', value: 'Send a WhatsApp message — all CTAs open a WhatsApp chat link', icon: '💬' },
+          { label: 'Sign up', value: 'Sign up — use email signup / account creation CTAs throughout', icon: '✉️' },
+          { label: 'Get a quote', value: 'Get a quote — use a quote request form as the primary CTA', icon: '📋' },
+          { label: 'Visit the store', value: 'Visit the physical store — CTAs show address and directions', icon: '📍' },
+          { label: 'Download something', value: 'Download — use download CTA buttons throughout', icon: '⬇️' },
+          { label: 'Watch a video', value: 'Watch a video — embed video as primary hero CTA', icon: '▶️' },
         ],
         required: true,
       },
@@ -296,10 +298,28 @@ const NIGERIAN_CITIES = [
 ]
 
 const WORLD_CITIES = [
-  'London, UK', 'New York, US', 'Toronto, Canada', 'Dubai, UAE',
-  'Johannesburg, South Africa', 'Nairobi, Kenya', 'Accra, Ghana',
-  'Berlin, Germany', 'Paris, France', 'Sydney, Australia',
-  'Amsterdam, Netherlands', 'Stockholm, Sweden',
+  // Africa
+  'Accra, Ghana', 'Nairobi, Kenya', 'Johannesburg, South Africa',
+  'Cape Town, South Africa', 'Cairo, Egypt', 'Addis Ababa, Ethiopia',
+  'Dar es Salaam, Tanzania', 'Kampala, Uganda', 'Dakar, Senegal',
+  'Douala, Cameroon', 'Lusaka, Zambia', 'Harare, Zimbabwe',
+  'Kigali, Rwanda', 'Freetown, Sierra Leone', 'Banjul, Gambia',
+  // Europe
+  'London, UK', 'Berlin, Germany', 'Paris, France', 'Amsterdam, Netherlands',
+  'Stockholm, Sweden', 'Madrid, Spain', 'Rome, Italy', 'Lisbon, Portugal',
+  'Dublin, Ireland', 'Brussels, Belgium', 'Vienna, Austria', 'Zurich, Switzerland',
+  // Americas
+  'New York, US', 'Los Angeles, US', 'Houston, US', 'Chicago, US',
+  'Toronto, Canada', 'Vancouver, Canada', 'São Paulo, Brazil',
+  'Mexico City, Mexico', 'Buenos Aires, Argentina', 'Bogotá, Colombia',
+  // Middle East
+  'Dubai, UAE', 'Abu Dhabi, UAE', 'Riyadh, Saudi Arabia', 'Doha, Qatar',
+  'Kuwait City, Kuwait', 'Beirut, Lebanon', 'Amman, Jordan',
+  // Asia & Oceania
+  'Mumbai, India', 'Delhi, India', 'Bangalore, India', 'Singapore',
+  'Kuala Lumpur, Malaysia', 'Jakarta, Indonesia', 'Manila, Philippines',
+  'Bangkok, Thailand', 'Tokyo, Japan', 'Seoul, South Korea',
+  'Shanghai, China', 'Sydney, Australia', 'Melbourne, Australia',
 ]
 
 const ALL_LOCATIONS = [
@@ -358,7 +378,8 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
   const [currentPage, setCurrentPage]   = useState(0)
   const [answers, setAnswers]           = useState({})
   const [multiSelects, setMultiSelects] = useState({})
-  const [phase, setPhase]               = useState('questions')
+  const [phase, setPhase] = useState('questions')
+  const [reviewAnswers, setReviewAnswers] = useState({})
   const [socialHandles, setSocialHandles] = useState({})
   const [aiSuggestions, setAiSuggestions] = useState({})
   const [suggestLoading, setSuggestLoading] = useState(false)
@@ -528,16 +549,17 @@ Respond ONLY with a JSON object, no markdown:
       setCurrentPage(p => p + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
-      // Merge all answers and generate
       const finalAnswers = {
         ...answers,
         ...Object.fromEntries(Object.entries(multiSelects).map(([k, v]) => [k, v])),
         social: socialHandles,
-        whatsapp: answers.whatsapp ? `+234${answers.whatsapp}` : '',
-        email: answers.email ? (answers.email.includes('@') ? answers.email : `${answers.email}@gmail.com`) : '',
+        whatsapp: answers.whatsapp ? `${answers[`whatsapp_code`] || '+234'}${answers.whatsapp}` : '',
+        email: answers.email ? `${answers.email}${answers.email_domain || '@gmail.com'}` : '',
         ai_suggestions: aiSuggestions,
       }
-      generate(finalAnswers)
+      setReviewAnswers(finalAnswers)
+      setPhase('review')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
@@ -643,6 +665,7 @@ async function fetchFullPurchasedPrompt(id) {
     setGeneratedPrompt(''); setPhase('questions')
     setFieldError(''); setApiError('')
     setSocialHandles({}); setAiSuggestions({})
+    setReviewAnswers({})
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -867,10 +890,33 @@ async function pollForConfirmation(id) {
                         onChange={val => setAnswers(a => ({ ...a, [q.id]: val }))}
                       />
                     )}
-                    {/* Phone input with +234 prefix */}
+                    {/* Phone input with switchable country code */}
                     {q.type === 'phone' && (
                       <div className="pp-phone-wrap">
-                        <span className="pp-phone-prefix">+234</span>
+                        <select
+                          className="pp-phone-code-select"
+                          value={answers[`${q.id}_code`] || '+234'}
+                          onChange={e => setAnswers(a => ({ ...a, [`${q.id}_code`]: e.target.value }))}
+                        >
+                          {[
+                            { code: '+234', label: '🇳🇬 +234' },
+                            { code: '+1', label: '🇺🇸 +1' },
+                            { code: '+44', label: '🇬🇧 +44' },
+                            { code: '+233', label: '🇬🇭 +233' },
+                            { code: '+254', label: '🇰🇪 +254' },
+                            { code: '+27', label: '🇿🇦 +27' },
+                            { code: '+971', label: '🇦🇪 +971' },
+                            { code: '+49', label: '🇩🇪 +49' },
+                            { code: '+33', label: '🇫🇷 +33' },
+                            { code: '+91', label: '🇮🇳 +91' },
+                            { code: '+86', label: '🇨🇳 +86' },
+                            { code: '+55', label: '🇧🇷 +55' },
+                            { code: '+1', label: '🇨🇦 +1' },
+                            { code: '+61', label: '🇦🇺 +61' },
+                          ].map(c => (
+                            <option key={c.label} value={c.code}>{c.label}</option>
+                          ))}
+                        </select>
                         <input
                           className="pp-input pp-input--phone"
                           placeholder={q.placeholder}
@@ -879,12 +925,12 @@ async function pollForConfirmation(id) {
                             const val = e.target.value.replace(/[^0-9]/g, '')
                             setAnswers(a => ({ ...a, [q.id]: val }))
                           }}
-                          maxLength={10}
+                          maxLength={11}
                         />
                       </div>
                     )}
 
-                    {/* Email input with @gmail.com suffix */}
+                    {/* Email input with changeable domain */}
                     {q.type === 'email' && (
                       <div className="pp-email-wrap">
                         <input
@@ -892,13 +938,19 @@ async function pollForConfirmation(id) {
                           placeholder={q.placeholder}
                           value={answers[q.id] || ''}
                           onChange={e => {
-                            const val = e.target.value.replace('@gmail.com', '').replace('@', '')
+                            const val = e.target.value.replace(/@.*/, '')
                             setAnswers(a => ({ ...a, [q.id]: val }))
                           }}
                         />
-                        {!(answers[q.id] || '').includes('@') && (
-                          <span className="pp-email-suffix">@gmail.com</span>
-                        )}
+                        <select
+                          className="pp-email-domain-select"
+                          value={answers[`${q.id}_domain`] || '@gmail.com'}
+                          onChange={e => setAnswers(a => ({ ...a, [`${q.id}_domain`]: e.target.value }))}
+                        >
+                          {['@gmail.com', '@yahoo.com', '@outlook.com', '@hotmail.com', '@icloud.com', '@protonmail.com'].map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
                       </div>
                     )}
 
@@ -935,6 +987,39 @@ async function pollForConfirmation(id) {
                       </div>
                     )}
 
+                    {/* CTA multi-select with AI suggestion */}
+                    {q.type === 'cta-multi' && (
+                      <div className="pp-cta-wrap">
+                        {aiSuggestions.cta && (
+                          <div className="pp-ai-suggest pp-ai-suggest--cta">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            <span>AI recommends <strong>{aiSuggestions.cta}</strong> as your primary CTA based on your business type</span>
+                          </div>
+                        )}
+                        <div className="pp-cta-grid">
+                          {q.options.map(opt => {
+                            const sel = (multiSelects[q.id] || []).includes(opt.value)
+                            const isAiPick = aiSuggestions.cta && opt.label.toLowerCase().includes(aiSuggestions.cta.toLowerCase())
+                            return (
+                              <button
+                                key={opt.value}
+                                className={`pp-cta-option ${sel ? 'pp-cta-option--sel' : ''} ${isAiPick ? 'pp-cta-option--ai' : ''}`}
+                                onClick={() => handleMultiToggle(q.id, opt.value)}
+                              >
+                                <span className="pp-cta-icon">{opt.icon}</span>
+                                <span className="pp-cta-label">{opt.label}</span>
+                                {isAiPick && (
+                                  <span className="pp-cta-ai-badge">AI pick</span>
+                                )}
+                                {sel && (
+                                  <svg className="pp-cta-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                     {/* Single select options */}
                     {q.type === 'options' && (
                       <div className="pp-options-grid">
@@ -1051,6 +1136,105 @@ async function pollForConfirmation(id) {
           </>
         )}
 
+{/* ── REVIEW PHASE ── */}
+        {phase === 'review' && (
+          <div className="pp-review">
+            <div className="pp-review-header">
+              <div className="pp-result-badge">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                Ready to generate
+              </div>
+              <h2 className="pp-review-title">Review your answers</h2>
+              <p className="pp-review-sub">Check everything looks right before we generate your personalised prompt.</p>
+            </div>
+
+            {/* AI outcome prediction */}
+            {aiSuggestions.niche && (
+              <div className="pp-review-ai-card">
+                <div className="pp-review-ai-header">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  AI Outcome Prediction
+                </div>
+                <div className="pp-review-ai-grid">
+                  <div className="pp-review-ai-item">
+                    <span className="pp-review-ai-label">Niche</span>
+                    <span className="pp-review-ai-val">{aiSuggestions.niche}</span>
+                  </div>
+                  <div className="pp-review-ai-item">
+                    <span className="pp-review-ai-label">Complexity</span>
+                    <span className="pp-review-ai-val">{aiSuggestions.complexity}</span>
+                  </div>
+                  <div className="pp-review-ai-item">
+                    <span className="pp-review-ai-label">Grade</span>
+                    <span className="pp-review-ai-val">{aiSuggestions.grade}</span>
+                  </div>
+                  <div className="pp-review-ai-item">
+                    <span className="pp-review-ai-label">Best CTA</span>
+                    <span className="pp-review-ai-val">{aiSuggestions.cta}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Answer summary */}
+            <div className="pp-review-sections">
+              {PAGES.map((page) => {
+                const filled = page.questions.filter(q => {
+                  if (q.type === 'multi' || q.type === 'cta-multi') return (multiSelects[q.id] || []).length > 0
+                  return !!reviewAnswers[q.id]
+                })
+                if (filled.length === 0) return null
+                return (
+                  <div key={page.page} className="pp-review-section">
+                    <div className="pp-review-section-header">
+                      <span className="pp-review-section-label">{page.label}</span>
+                      <button className="pp-review-edit" onClick={() => { setCurrentPage(page.page - 1); setPhase('questions') }}>
+                        Edit
+                      </button>
+                    </div>
+                    {filled.map(q => {
+                      let val = ''
+                      if (q.type === 'multi' || q.type === 'cta-multi') {
+                        val = (multiSelects[q.id] || []).map(v => {
+                          const opt = q.options?.find(o => o.value === v || o === v)
+                          return opt?.label || opt || v
+                        }).join(', ')
+                      } else if (q.type === 'phone') {
+                        val = `${reviewAnswers[`${q.id}_code`] || '+234'} ${reviewAnswers[q.id] || ''}`
+                      } else if (q.type === 'email') {
+                        val = `${reviewAnswers[q.id] || ''}${reviewAnswers[`${q.id}_domain`] || '@gmail.com'}`
+                      } else if (q.type === 'color-pick') {
+                        val = reviewAnswers[q.id] || ''
+                      } else if (q.type === 'social') {
+                        val = Object.entries(socialHandles).filter(([,v]) => v).map(([k,v]) => `${k}: ${v}`).join(', ')
+                      } else {
+                        val = reviewAnswers[q.id] || ''
+                      }
+                      if (!val) return null
+                      return (
+                        <div key={q.id} className="pp-review-row">
+                          <span className="pp-review-label">{q.label}</span>
+                          <span className="pp-review-val">{val}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="pp-review-actions">
+              <button className="pp-nav-back" onClick={() => { setCurrentPage(PAGES.length - 1); setPhase('questions') }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                Back to edit
+              </button>
+              <button className="pp-nav-next" onClick={() => generate(reviewAnswers)}>
+                Generate my prompt →
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        )}
         {/* ── GENERATING PHASE ── */}
         {phase === 'generating' && (
           <div className="pp-generating">
@@ -1209,6 +1393,6 @@ async function pollForConfirmation(id) {
         )}
 
       </div>
-    </div>
-  )
+</div>
+ )
 }
