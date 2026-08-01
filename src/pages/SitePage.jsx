@@ -185,15 +185,25 @@ const [countChecked, setCountChecked]     = useState(false)
 
   // 3. SECOND PASTED HOOK (User Subscription & Unlock Limits Check)
   useEffect(() => {
-    if (!user) { 
-      setCountChecked(true); 
-      return; 
-    }
+    if (!user) { setCountChecked(true); return }
     
-    async function checkCount() {
-      
-      const startOfDay = new Date(); 
-      startOfDay.setHours(0,0,0,0)
+    async function checkAccess() {
+      // Check prompt_access first — paid users skip daily limit
+      const { data: access } = await supabase
+        .from('prompt_access')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (access) {
+        setDailyCount(0) // paid — never hit limit
+        setCountChecked(true)
+        return
+      }
+
+      // Free user — check daily count
+      const startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
       
       const { count } = await supabase
         .from('prompt_unlocks')
@@ -205,9 +215,8 @@ const [countChecked, setCountChecked]     = useState(false)
       setCountChecked(true)
     }
     
-    checkCount()
+    checkAccess()
   }, [user])
-
 
   // 4. THIS LINE MUST BE DIRECTLY BELOW THE FIX:
   if (!site) return null
@@ -240,6 +249,20 @@ const [countChecked, setCountChecked]     = useState(false)
   async function handleCopyPrompt() {
     if (!user) { onSignIn(); return }
 
+    // Check paid access first
+    const { data: access } = await supabase
+      .from('prompt_access')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (access) {
+      navigator.clipboard.writeText(unlockedPrompt || '')
+      setCopied(true); setTimeout(() => setCopied(false), 2200)
+      return
+    }
+
+    // Free user check
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0)
     const { count } = await supabase.from('prompt_unlocks')
       .select('*', { count: 'exact', head: true })
@@ -259,31 +282,43 @@ const [countChecked, setCountChecked]     = useState(false)
   }
 
 async function handleUnlock() {
-
   if (!user) { onSignIn(); return }
 
-  if (dailyCount >= 2) { setLimitReached(true); return }
-
   setUnlockLoading(true)
+
+  // Check paid access first
+  const { data: access } = await supabase
+    .from('prompt_access')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (access) {
+    // Paid user — unlimited access
+    await fetchFullPrompt()
+    setUnlockLoading(false)
+    return
+  }
+
+  // Free user — check daily limit
+  if (dailyCount >= 2) {
+    setLimitReached(true)
+    setUnlockLoading(false)
+    return
+  }
 
   await fetchFullPrompt()
 
   const { data: existing } = await supabase
-
     .from('prompt_unlocks').select('id')
-
     .eq('user_id', user.id).eq('site_id', site.id).maybeSingle()
 
   if (!existing) {
-
     await supabase.from('prompt_unlocks').insert({ user_id: user.id, site_id: site.id })
-
   }
 
   setDailyCount(c => c + 1)
-
   setUnlockLoading(false)
-
 }
 
 function handlePaidUnlock() {
