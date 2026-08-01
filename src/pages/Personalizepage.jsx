@@ -435,7 +435,11 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
         .maybeSingle()
       if (data?.answers) {
         setAnswers(data.answers)
-        setMultiSelects(data.answers)
+        const multi = {}
+        ;['pages', 'features', 'cta_action'].forEach(key => {
+          if (Array.isArray(data.answers[key])) multi[key] = data.answers[key]
+        })
+        setMultiSelects(multi)
         setSocialHandles(data.answers.social || {})
         setCurrentPage(data.page || 0)
         setSavedAt(new Date(data.updated_at))
