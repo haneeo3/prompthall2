@@ -468,15 +468,18 @@ export default function PersonalizePage({ site, onBack, user, onSignIn }) {
     return () => clearTimeout(timeout)
   }, [answers.business]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function fetchAiSuggestions(business) {
+async function fetchAiSuggestions(business) {
     setSuggestLoading(true)
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+        },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
+          model: 'llama-3.1-8b-instant',
+          max_tokens: 500,
           messages: [{
             role: 'user',
             content: `Business: "${business}"
@@ -494,17 +497,15 @@ Respond ONLY with a JSON object, no markdown:
         })
       })
       const data = await res.json()
-      const text = data.content?.[0]?.text || '{}'
+      const text = data.choices?.[0]?.message?.content || '{}'
       const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
       setAiSuggestions(parsed)
-
-      // Auto-pre-select recommended pages and features
       if (parsed.pages) setMultiSelects(ms => ({ ...ms, pages: parsed.pages }))
       if (parsed.features) setMultiSelects(ms => ({ ...ms, features: parsed.features }))
     } catch { /* silent fail */ }
     setSuggestLoading(false)
   }
-
+  
   useEffect(() => {
     if (phase === 'result' && resultRef.current) {
       setTimeout(() => resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
@@ -659,9 +660,10 @@ async function fetchFullPurchasedPrompt(id) {
     setTimeout(() => setDownloaded(false), 2500)
   }
 
-  function openInLovable() {
-    const encoded = encodeURIComponent(generatedPrompt)
-    window.open(`https://lovable.dev/new?prompt=${encoded}`, '_blank')
+function openInLovable() {
+    navigator.clipboard.writeText(generatedPrompt)
+    window.open('https://lovable.dev', '_blank')
+    alert('Prompt copied! Paste it into Lovable to start building.')
   }
 
   function restart() {
