@@ -40,7 +40,7 @@ function SectionHeading({ eyebrow, title, description, centered = false }) {
   </div>;
 }
 
-function Actions({ tryFreeHref, demoEmail, primary = 'Protect My Website', secondary = 'Talk to the Team' }) {
+function Actions({ tryFreeHref, demoEmail, primary = 'Start Your Free Trial', secondary = 'Talk to the Team' }) {
   return <div className="intel-actions">
     <a className="intel-button intel-button--primary" href={tryFreeHref}>{primary}<Icon name="arrow" size={17} /></a>
     <a className="intel-button intel-button--outline" href={'mailto:' + demoEmail + '?subject=PromptHall%20website%20monitoring%20enquiry'}>{secondary}</a>
@@ -55,12 +55,12 @@ export function Navbar({ tryFreeHref, demoEmail }) {
       <Brand />
       <nav className={'intel-nav-links' + (open ? ' is-open' : '')} id="intel-mobile-menu" aria-label="Main navigation">
         {links.map(([label, href]) => <a key={href} href={href} onClick={() => setOpen(false)}>{label}</a>)}
-        <div className="intel-nav-mobile-actions"><a href={'mailto:' + demoEmail} onClick={() => setOpen(false)}>Talk to the Team</a><a href={tryFreeHref} onClick={() => setOpen(false)}>Protect My Website <Icon name="arrow" size={16} /></a></div>
+        <div className="intel-nav-mobile-actions"><a href={'mailto:' + demoEmail} onClick={() => setOpen(false)}>Talk to the Team</a><a href={tryFreeHref} onClick={() => setOpen(false)}>Start Your Free Trial <Icon name="arrow" size={16} /></a></div>
       </nav>
 
       <div className="intel-nav-actions">
         <a className="intel-link-button" href={'mailto:' + demoEmail}>Talk to the Team</a>
-        <a className="intel-button intel-button--primary intel-button--small" href={tryFreeHref}>Protect My Website <Icon name="arrow" size={15} /></a>
+        <a className="intel-button intel-button--primary intel-button--small" href={tryFreeHref}>Start Your Free Trial <Icon name="arrow" size={15} /></a>
       </div>
       <button className="intel-menu-toggle"
         type="button"
@@ -83,7 +83,7 @@ export function Hero({ tryFreeHref }) {
         <p className="intel-hero-lede">Work with the PromptHall team to spot broken pages, slow loading times, and website issues that get in the way of enquiries, bookings, and sales. Know what to fix first, without figuring out the technical details yourself.</p>
 
         <div className="intel-actions">
-          <a className="intel-button intel-button--primary" href={tryFreeHref}>Protect My Website <Icon name="arrow" size={17} /></a><a className="intel-button intel-button--outline" href="#how-it-works">See How It Works</a>
+          <a className="intel-button intel-button--primary" href={tryFreeHref}>Start Your Free Trial <Icon name="arrow" size={17} /></a><a className="intel-button intel-button--outline" href="#how-it-works">See How It Works</a>
         </div>
         <p className="intel-fine-print">Run your business. Let us keep an eye on your website.</p>
       </div>

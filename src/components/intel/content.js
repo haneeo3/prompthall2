@@ -20,5 +20,5 @@ export const faqs = [
   ['Do I need to understand the technical side?', 'No. Your report explains what needs attention in plain language, with a next step you can act on or pass to your developer.'],
   ['What do I actually get?', 'A website health report with a score, the pages checked, issues found, and recommended next steps. See the examples above for exactly how it looks.'],
   ['Will you fix the problems for me?', 'Monitoring finds and explains the issues; it does not automatically change your website. You get clear recommendations to take to your developer. If you need hands-on help, talk to our team about the scope.'],
-  ['How do I get started, and what does it cost?', 'Use “Protect My Website” to book a 30-minute call with our team about your website. Pricing is still being finalised; we will confirm the scope and cost before you commit.'],
+  ['How do I get started, and what does it cost?', 'Use “Start Your Free Trial” to book a 30-minute call with our team to set up your 14-day free trial. Pricing is still being finalised; we will confirm the scope and cost before you commit.'],
 ];
