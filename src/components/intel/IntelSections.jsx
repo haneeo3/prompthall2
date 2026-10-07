@@ -175,11 +175,24 @@ export function WeeklyReport() {
   </section>;
 }
 
+export function About() {
+  return <section className="intel-section intel-about-section" id="about" aria-labelledby="about-heading">
+    <div className="intel-container">
+      <div className="intel-heading">
+        <p className="intel-eyebrow">About PromptHall</p>
+        <h2 id="about-heading">Website monitoring. <span className="intel-accent">Without the technical burden.</span></h2>
+      </div>
+      <p>PromptHall provides managed website monitoring for small businesses that rely on online enquiries, bookings, and sales, without an in-house technical team to keep watch.</p>
+      <p>We check your public website from the outside, explain detected problems in plain language, and recommend the next step. Your developer or hosting provider handles the fix. We check again to see whether the issue has cleared. No dashboard to manage or software to install.</p>
+    </div>
+  </section>;
+}
+
 export function Team() {
   return <section className="intel-section intel-team-section" id="team">
     <div className="intel-container">
       <SectionHeading eyebrow="The people behind the work" title={<>Real people. <span className="intel-accent">Not another dashboard.</span></>} />
-      <p className="intel-team-intro" id="about">You shouldn't need to become a developer to know whether your website is doing its job. Our team brings product, engineering, and business expertise to make the next step clear.</p>
+      <p className="intel-team-intro">You shouldn't need to become a developer to know whether your website is doing its job. Our team brings product, engineering, and business expertise to make the next step clear.</p>
 
       <div className="intel-team-grid">{team.map((person) => <article className="intel-team-card" key={person.name}>
         <div className="intel-team-photo">

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Navbar, Hero, WhatWeMonitor, HowItWorks, WeeklyReport,
-  Team, FAQ, FinalCTA, Footer,
+  About, Team, FAQ, FinalCTA, Footer,
 } from '../../components/intel/IntelSections';
 import './IntelHome.css';
 
@@ -15,6 +15,7 @@ export default function IntelHome({ tryFreeHref = 'https://calendly.com/promptha
       <WhatWeMonitor />
       <HowItWorks />
       <WeeklyReport />
+      <About />
       <Team />
       <FAQ />
       <FinalCTA tryFreeHref={tryFreeHref} demoEmail={demoEmail} />
