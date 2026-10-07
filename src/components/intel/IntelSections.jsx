@@ -26,13 +26,9 @@ function Icon({ name, size = 20 }) {
   return <svg {...common}>{shapes[name] || shapes.check}</svg>;
 }
 
-function Brand() {
-  return <a className="intel-brand" href="#top" aria-label="PromptHall Intel, back to top">
-    <span className="intel-brand-mark" aria-hidden="true">
-      <span />
-    </span>
-    <span>PromptHall <strong>Intel</strong>
-    </span>
+function Brand({ footer = false }) {
+  return <a className="intel-brand" href="#top" aria-label="PromptHall, back to top">
+    <img className="intel-brand-logo" src={footer ? '/images/prompthall-logo-footer.png' : '/images/prompthall-logo-transparent.png'} alt="PromptHall" width="900" height="300" />
   </a>;
 }
 
@@ -44,10 +40,10 @@ function SectionHeading({ eyebrow, title, description, centered = false }) {
   </div>;
 }
 
-function Actions({ tryFreeHref, demoEmail, primary = 'Get Started', secondary = 'Talk to Us' }) {
+function Actions({ tryFreeHref, demoEmail, primary = 'Protect My Website', secondary = 'Talk to the Team' }) {
   return <div className="intel-actions">
     <a className="intel-button intel-button--primary" href={tryFreeHref}>{primary}<Icon name="arrow" size={17} /></a>
-    <a className="intel-button intel-button--outline" href={'mailto:' + demoEmail + '?subject=PromptHall%20Intel%20enquiry'}>{secondary}</a>
+    <a className="intel-button intel-button--outline" href={'mailto:' + demoEmail + '?subject=PromptHall%20website%20monitoring%20enquiry'}>{secondary}</a>
   </div>;
 }
 
@@ -59,12 +55,12 @@ export function Navbar({ tryFreeHref, demoEmail }) {
       <Brand />
       <nav className={'intel-nav-links' + (open ? ' is-open' : '')} id="intel-mobile-menu" aria-label="Main navigation">
         {links.map(([label, href]) => <a key={href} href={href} onClick={() => setOpen(false)}>{label}</a>)}
-        <div className="intel-nav-mobile-actions"><a href={'mailto:' + demoEmail} onClick={() => setOpen(false)}>Talk to Us</a><a href={tryFreeHref} onClick={() => setOpen(false)}>Get Started <Icon name="arrow" size={16} /></a></div>
+        <div className="intel-nav-mobile-actions"><a href={'mailto:' + demoEmail} onClick={() => setOpen(false)}>Talk to the Team</a><a href={tryFreeHref} onClick={() => setOpen(false)}>Protect My Website <Icon name="arrow" size={16} /></a></div>
       </nav>
 
       <div className="intel-nav-actions">
-        <a className="intel-link-button" href={'mailto:' + demoEmail}>Talk to Us</a>
-        <a className="intel-button intel-button--primary intel-button--small" href={tryFreeHref}>Get Started <Icon name="arrow" size={15} /></a>
+        <a className="intel-link-button" href={'mailto:' + demoEmail}>Talk to the Team</a>
+        <a className="intel-button intel-button--primary intel-button--small" href={tryFreeHref}>Protect My Website <Icon name="arrow" size={15} /></a>
       </div>
       <button className="intel-menu-toggle"
         type="button"
@@ -82,19 +78,19 @@ export function Hero({ tryFreeHref }) {
   return <section className="intel-hero" id="top">
     <div className="intel-container intel-hero-grid">
       <div className="intel-hero-copy">
-        <p className="intel-eyebrow">Managed website monitoring</p>
-        <h1>Your website is working for your business. <em>Who's watching it?</em></h1>
-        <p className="intel-hero-lede">Intel watches the parts of your website customers rely on and tells you when something needs attention.</p>
+        <p className="intel-eyebrow">For businesses that depend on online enquiries</p>
+        <h1>Do You Want a Website <em>Your Customers Can Rely On?</em></h1>
+        <p className="intel-hero-lede">Work with the PromptHall team to spot broken pages, slow loading times, and website issues that get in the way of enquiries, bookings, and sales. Know what to fix first, without figuring out the technical details yourself.</p>
 
         <div className="intel-actions">
           <a className="intel-button intel-button--primary" href={tryFreeHref}>Protect My Website <Icon name="arrow" size={17} /></a><a className="intel-button intel-button--outline" href="#how-it-works">See How It Works</a>
         </div>
-        <p className="intel-fine-print">Built for businesses without an in-house technical team.</p>
+        <p className="intel-fine-print">Run your business. Let us keep an eye on your website.</p>
       </div>
-      <div className="intel-video-shell" aria-label="Space reserved for the PromptHall Intel video">
+      <div className="intel-video-shell" aria-label="Space reserved for the PromptHall website monitoring video">
         <div className="intel-video-play" aria-hidden="true">▶</div>
-        <span>See how Intel keeps watch</span>
-        <small>Product video coming soon</small>
+        <span>See how we spot website problems</span>
+        <small>Walkthrough coming soon</small>
       </div>
     </div>
   </section>;
@@ -103,31 +99,31 @@ export function Hero({ tryFreeHref }) {
 export function WhatWeMonitor() {
   return <section className="intel-section intel-monitor-section" id="what-we-monitor">
     <div className="intel-container">
-      <SectionHeading eyebrow="What Intel does" title={<>Someone watching <span className="intel-accent">what matters.</span></>} description="Your website may be online while a page your customers need isn't working." />
+      <SectionHeading eyebrow="The problems that cost you customers" title={<>A live website isn't always <span className="intel-accent">a working website.</span></>} description="Your homepage loads. But the page they need won't open. They leave without calling, booking, or buying. You never hear why." />
       <div className="intel-monitor-grid">
         <article className="intel-monitor-card">
           <span className="intel-icon-box">
             <Icon name="globe" size={25} />
           </span>
-          <h3>We watch</h3>
-          <p>Your website and the important pages customers use to reach you.</p>
+          <h3>Find the broken pages</h3>
+          <p>A working homepage can hide a broken contact, booking, or product page. We check beyond the front door.</p>
         </article>
         <article className="intel-monitor-card">
           <span className="intel-icon-box">
             <Icon name="bell" size={25} />
           </span>
-          <h3>You know</h3>
-          <p>When something breaks or slows down, you get a clear signal.</p>
+          <h3>Spot the slowdowns</h3>
+          <p>Customers won't wait around for a slow page. See where loading speed needs attention before you send more traffic there.</p>
         </article>
         <article className="intel-monitor-card">
           <span className="intel-icon-box">
             <Icon name="message" size={25} />
           </span>
-          <h3>You can act</h3>
-          <p>See what happened and the next step in a simple report.</p>
+          <h3>Know what to fix first</h3>
+          <p>No wall of technical data. Get a clear report you can use yourself or hand to your developer.</p>
         </article>
       </div>
-      <p className="intel-who-line" id="who-its-for">For businesses that depend on enquiries, bookings, applications, or sales through their website.</p>
+      <p className="intel-who-line" id="who-its-for">For service businesses, shops, schools, and clinics where a missed enquiry, booking, or sale matters.</p>
     </div>
   </section>;
 }
@@ -135,7 +131,7 @@ export function WhatWeMonitor() {
 export function HowItWorks() {
   return <section className="intel-section intel-steps-section" id="how-it-works">
     <div className="intel-container">
-      <SectionHeading eyebrow="How it works" title={<>Simple to start. <span className="intel-accent">Clear when it matters.</span></>} centered />
+      <SectionHeading eyebrow="How it works" title={<>You run the business. <span className="intel-accent">We watch the website.</span></>} centered />
       <div className="intel-steps-grid">
         {steps.map((step, index) => <article className="intel-step" key={step.title}>
           <span className="intel-step-number">
@@ -152,13 +148,13 @@ export function HowItWorks() {
 export function WeeklyReport() {
   const [selectedReport, setSelectedReport] = useState(0);
   const reports = [
-    { image: '/images/report-needs-attention.png', title: 'When a website needs attention', alt: 'Full screenshot of a PromptHall Monitor weekly email report showing a 44 out of 100 health score, 20 pages checked and a recommendation to improve loading speed' },
-    { image: '/images/report-healthy.png', title: 'When a website is healthy', alt: 'Full screenshot of a PromptHall Monitor weekly email report showing a 100 out of 100 health score, one page checked and no major issues' },
+    { image: '/images/report-issue-detected.png', title: 'When a website needs attention', alt: 'PromptHall issue alert email showing a homepage server error, HTTP 503, its impact on visitors, and recommended next steps for the developer', width: 1366, height: 768 },
+    { image: '/images/report-healthy.png', title: 'When a website is healthy', alt: 'Full screenshot of a PromptHall Monitor weekly email report showing a 100 out of 100 health score, one page checked and no major issues', width: 1366, height: 720 },
   ];
   return <section className="intel-section intel-report-section" id="reports">
     <div className="intel-container">
-      <SectionHeading eyebrow="Real report examples" title={<>See the result
-        <span className="intel-accent">in your inbox.</span></>} description="A clear score, what we checked, and what needs attention." />
+      <SectionHeading eyebrow="See exactly what you get" title={<>No guesswork.
+        <span className="intel-accent">Just your next move.</span></>} description="See what was checked, where your website is falling short, and what to prioritise. These are actual report examples, not a list of promises." />
 
       <div className="intel-report-tabs" role="group" aria-label="Choose a report example">
         {reports.map((report, index) =>
@@ -171,7 +167,7 @@ export function WeeklyReport() {
       </div>
       <figure className="intel-report-example" key={reports[selectedReport].image}>
         <a href={reports[selectedReport].image} target="_blank" rel="noopener noreferrer" aria-label={'Open full-size screenshot: ' + reports[selectedReport].title}>
-          <img src={reports[selectedReport].image} alt={reports[selectedReport].alt} width="1366" height="720" loading="lazy" />
+          <img src={reports[selectedReport].image} alt={reports[selectedReport].alt} width={reports[selectedReport].width} height={reports[selectedReport].height} loading="lazy" />
         </a>
         <figcaption>Open the image to view the full-size report.</figcaption>
       </figure>
@@ -182,8 +178,8 @@ export function WeeklyReport() {
 export function Team() {
   return <section className="intel-section intel-team-section" id="team">
     <div className="intel-container">
-      <SectionHeading eyebrow="The people behind Intel" title={<>Built by the <span className="intel-accent">PromptHall team.</span></>} />
-      <p className="intel-team-intro" id="about">We're building Intel for businesses that rely on their website and want someone keeping watch.</p>
+      <SectionHeading eyebrow="The people behind the work" title={<>Real people. <span className="intel-accent">Not another dashboard.</span></>} />
+      <p className="intel-team-intro" id="about">You shouldn't need to become a developer to know whether your website is doing its job. Our team brings product, engineering, and business expertise to make the next step clear.</p>
 
       <div className="intel-team-grid">{team.map((person) => <article className="intel-team-card" key={person.name}>
         <div className="intel-team-photo">
@@ -202,8 +198,6 @@ export function Team() {
 }
 
 export function FAQ() {
-  const [showAll, setShowAll] = useState(false);
-  const featured = [faqs[0], faqs[1], faqs[2], faqs[10], faqs[19]];
   return <section className="intel-section intel-faq-section" id="faq">
     <div className="intel-container intel-faq-grid">
       <div>
@@ -211,17 +205,12 @@ export function FAQ() {
       </div>
 
       <div>
-        <div className="intel-faq-list">{(showAll ? faqs : featured).map(([question, answer]) => <details key={question}><summary>{question}<span className="intel-faq-toggle" aria-hidden="true">+</span></summary>
+        <div className="intel-faq-list">{faqs.map(([question, answer]) => <details key={question}><summary>{question}<span className="intel-faq-toggle" aria-hidden="true">+</span></summary>
           <p>{answer}</p>
         </details>
         )}
         </div>
 
-        <button className="intel-faq-more"
-          type="button" aria-expanded={showAll}
-          onClick={() => setShowAll(!showAll)}>
-          {showAll ? 'Show fewer questions' : 'View all 20 questions'}
-        </button>
       </div>
     </div>
   </section>;
@@ -230,38 +219,40 @@ export function FAQ() {
 export function FinalCTA({ tryFreeHref, demoEmail }) {
   return <section className="intel-section intel-cta-section">
     <div className="intel-container intel-cta-inner">
-      <p className="intel-eyebrow">Stay ahead of the problem</p>
-      <h2>Your customers shouldn't be the first people to discover a website problem.</h2>
-      <p>Let PromptHall Intel keep watch.</p>
+      <p className="intel-eyebrow">Stop leaving it to chance</p>
+      <h2>Your next customer is on their way. Is your website ready?</h2>
+      <p>Know which pages need attention before you spend more sending people to them.</p>
 
       <Actions tryFreeHref={tryFreeHref} demoEmail={demoEmail} />
-      <small>Currently onboarding a limited number of businesses.</small>
+      <small>Start with your website. Get clarity on what needs attention.</small>
     </div>
   </section>;
 }
 
-export function Footer({ demoEmail }) {
+export function Footer({ demoEmail, homeHref = '' }) {
   return <footer className="intel-footer">
     <div className="intel-container">
       <div className="intel-footer-grid">
         <div className="intel-footer-brand">
-          <Brand />
-          <p>Managed website monitoring for businesses that depend on their websites.</p>
+          <Brand footer />
+          <p>You bring customers to your website. We help you spot the problems that send them away.</p>
         </div>
 
         <div>
           <h3>Product</h3>
-          <a href="#what-we-monitor">What We Do</a>
-          <a href="#how-it-works">How It Works</a>
-          <a href="#reports">Reports</a>
-          <a href="#faq">FAQs</a>
+          <a href={homeHref + "#what-we-monitor"}>What We Do</a>
+          <a href={homeHref + "#how-it-works"}>How It Works</a>
+          <a href={homeHref + "#reports"}>Reports</a>
+          <a href={homeHref + "#faq"}>FAQs</a>
         </div>
 
         <div>
           <h3>Company</h3>
-          <a href="#about">About</a>
-          <a href="#team">Team</a>
+          <a href={homeHref + "#about"}>About</a>
+          <a href={homeHref + "#team"}>Team</a>
           <a href={'mailto:' + demoEmail}>Contact</a>
+          <a href="https://www.tiktok.com/@prompthall?lang=en-GB" target="_blank" rel="noopener noreferrer">TikTok</a>
+          <a href="https://www.linkedin.com/company/prompthall/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
         </div>
 
         <div>
@@ -272,8 +263,8 @@ export function Footer({ demoEmail }) {
       </div>
 
       <div className="intel-footer-bottom">
-        <span>© {new Date().getFullYear()} PromptHall Intel</span>
-        <span>Built to keep watch.</span>
+        <span>© {new Date().getFullYear()} PromptHall</span>
+        <span>Less guesswork. Clear next steps.</span>
       </div>
     </div>
   </footer>;

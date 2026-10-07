@@ -5,8 +5,8 @@ import {
 } from '../../components/intel/IntelSections';
 import './IntelHome.css';
 
-// Supply the live signup route and team inbox from the parent application.
-export default function IntelHome({ tryFreeHref = '/auth', demoEmail = 'hello@prompthall.space' }) {
+// Supply the booking link and team inbox from the parent application.
+export default function IntelHome({ tryFreeHref = 'https://calendly.com/prompthall/30min', demoEmail = 'hello@prompthall.space' }) {
   return <div className="intel-site">
     <a className="intel-skip" href="#intel-main">Skip to content</a>
     <Navbar tryFreeHref={tryFreeHref} demoEmail={demoEmail} />

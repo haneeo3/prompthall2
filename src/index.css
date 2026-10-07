@@ -9,8 +9,8 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: #0A0A0A;
-  color: #fff;
+  background: #fff;
+  color: #171329;
   min-height: 100vh;
   overflow-x: hidden;
 }
